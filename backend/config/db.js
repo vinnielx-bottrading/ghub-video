@@ -38,6 +38,9 @@ const connectDB = () => {
       retryTimer = null;
     }
     console.log(`✅ MongoDB Atlas đã kết nối thành công: ${conn.host}`);
+    // Chỉ cần chạy 1 lần sau khi kết nối lần đầu — tự tạo tài khoản Admin
+    // mặc định nếu chưa có tài khoản nào trong DB.
+    require('../utils/ensureDefaultAdmin')();
   });
 
   conn.on('disconnected', () => {

@@ -1,4 +1,4 @@
-// VidFlow API bridge
+// GHUB X API bridge
 (function () {
   // app.js expects this select even though the current homepage does not render
   // the optional upload form. Create a harmless hidden control so initialization
@@ -23,7 +23,7 @@
         return originalFetch(new Request(sameOriginUrl, input), init);
       }
     } catch (error) {
-      console.warn('VidFlow API bridge warning:', error);
+      console.warn('GHUB X API bridge warning:', error);
     }
     return originalFetch(input, init);
   };

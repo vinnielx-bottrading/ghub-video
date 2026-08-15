@@ -82,7 +82,7 @@ const VideoSchema = new mongoose.Schema({
   channel: {
     name: {
       type: String,
-      default: 'VidFlow Creator'
+      default: 'GHUB X Creator'
     },
     avatar: {
       type: String,

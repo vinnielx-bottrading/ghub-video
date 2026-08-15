@@ -1,6 +1,6 @@
-# 🎬 VidFlow Pro - Nền Tảng Video Fullstack (Express + MongoDB)
+# 🎬 GHUB X - Nền Tảng Video Fullstack (Express + MongoDB)
 
-VidFlow Pro là hệ thống chia sẻ video hoàn chỉnh gồm **Frontend chuẩn Cinema 4K** và **Backend RESTful API kết nối MongoDB**.
+GHUB X là hệ thống chia sẻ video hoàn chỉnh gồm **Frontend chuẩn Cinema 4K** và **Backend RESTful API kết nối MongoDB**.
 
 ![Preview](https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=80)
 

@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const categoryFilter = document.getElementById('categoryFilter');
   const serverStatusText = document.getElementById('serverStatusText');
   const toastContainer = document.getElementById('adminToastContainer');
+  const adminLogoutBtn = document.getElementById('adminLogoutBtn');
 
   // Edit Modal Elements
   const editModal = document.getElementById('editModal');
@@ -63,6 +64,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
     return num.toLocaleString();
+  }
+
+  // Nếu phiên đăng nhập Admin hết hạn (401), chuyển ngay về trang login thay
+  // vì rơi vào chế độ "dữ liệu cục bộ" gây hiểu nhầm là backend offline.
+  function redirectIfSessionExpired(response) {
+    if (response && response.status === 401) {
+      window.location.href = '/admin-login.html';
+      return true;
+    }
+    return false;
   }
 
   function showToast(message, type = 'success') {
@@ -178,7 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     filtered.forEach((video, index) => {
       const tr = document.createElement('tr');
-      const channelName = (video.channel && video.channel.name) || 'VidFlow Creator';
+      const channelName = (video.channel && video.channel.name) || 'GHUB X Creator';
       const isHero = video.isHeroSpotlight || false;
       const id = video._id || video.id;
 
@@ -231,11 +242,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       if (video._id) {
-        await fetch(`${API_BASE_URL}/videos/${id}`, {
+        const res = await fetch(`${API_BASE_URL}/videos/${id}`, {
           method: 'PUT',
+          credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ isHeroSpotlight: newHeroState })
         });
+        if (redirectIfSessionExpired(res)) return;
       }
       video.isHeroSpotlight = newHeroState;
       renderTable();
@@ -260,7 +273,7 @@ document.addEventListener('DOMContentLoaded', () => {
     editTagsInput.value = Array.isArray(video.tags) ? video.tags.join(', ') : (video.tags || '');
     editViewsInput.value = video.views || 0;
     editLikesInput.value = video.likes || 0;
-    editChannelNameInput.value = channel.name || 'VidFlow Creator';
+    editChannelNameInput.value = channel.name || 'GHUB X Creator';
     editVerifiedCheckbox.checked = channel.verified || false;
     editHeroCheckbox.checked = video.isHeroSpotlight || false;
 
@@ -292,7 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
       likes: Number(editLikesInput.value) || 0,
       isHeroSpotlight: editHeroCheckbox.checked,
       channel: {
-        name: editChannelNameInput.value.trim() || 'VidFlow Creator',
+        name: editChannelNameInput.value.trim() || 'GHUB X Creator',
         avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
         verified: editVerifiedCheckbox.checked
       }
@@ -306,9 +319,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // MongoDB ObjectId update
         const response = await fetch(`${API_BASE_URL}/videos/${currentEditingId}`, {
           method: 'PUT',
+          credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updatedData)
         });
+        if (redirectIfSessionExpired(response)) return;
         if (response.ok) {
           const json = await response.json();
           const index = allVideos.findIndex(v => (v._id || v.id) === currentEditingId);
@@ -376,7 +391,7 @@ document.addEventListener('DOMContentLoaded', () => {
       views: 1,
       likes: 1,
       channel: {
-        name: addChannelNameInput.value.trim() || 'VidFlow Studio',
+        name: addChannelNameInput.value.trim() || 'GHUB X Studio',
         avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
         subscribers: '1.2K người theo dõi',
         verified: true
@@ -389,9 +404,11 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const res = await fetch(`${API_BASE_URL}/videos`, {
         method: 'POST',
+        credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newVideoPayload)
       });
+      if (redirectIfSessionExpired(res)) return;
 
       if (res.ok) {
         const result = await res.json();
@@ -429,9 +446,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       if (video._id) {
-        await fetch(`${API_BASE_URL}/videos/${id}`, {
-          method: 'DELETE'
+        const res = await fetch(`${API_BASE_URL}/videos/${id}`, {
+          method: 'DELETE',
+          credentials: 'same-origin'
         });
+        if (redirectIfSessionExpired(res)) return;
       }
 
       allVideos = allVideos.filter(v => (v._id || v.id) !== id);
@@ -446,6 +465,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // Filter and Search Events
   searchInput.addEventListener('input', renderTable);
   categoryFilter.addEventListener('change', renderTable);
+
+  // Đăng xuất Admin
+  adminLogoutBtn.addEventListener('click', async () => {
+    try {
+      await fetch(`${API_BASE_URL}/auth/admin/logout`, { method: 'POST', credentials: 'same-origin' });
+    } catch (e) {}
+    window.location.href = '/admin-login.html';
+  });
 
   // Initialize
   loadVideos();

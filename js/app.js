@@ -1,5 +1,5 @@
 // ==========================================================================
-// VidFlow Pro - Frontend Application Logic with MongoDB API Integration
+// GHUB X - Frontend Application Logic with MongoDB API Integration
 // ==========================================================================
 
 // Khi trang được phục vụ trực tiếp bởi backend Express (backend/server.js) —

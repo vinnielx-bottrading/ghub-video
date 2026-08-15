@@ -6,6 +6,8 @@ const fs = require('fs');
 const mongoose = require('mongoose');
 const connectDB = require('./config/db');
 const videoRoutes = require('./routes/videoRoutes');
+const authRoutes = require('./routes/authRoutes');
+const { requireAdminPage } = require('./middleware/adminAuth');
 
 connectDB();
 
@@ -43,11 +45,14 @@ app.use('/api/videos', (req, res, next) => {
 // REST API used by index.html and admin.html.
 app.use('/api/videos', videoRoutes);
 
+// Đăng nhập/đăng xuất Admin.
+app.use('/api/auth', authRoutes);
+
 // Health check — bao gồm cả trạng thái MongoDB để dễ chẩn đoán lỗi đến từ đâu.
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'online',
-    service: 'vidflow-backend',
+    service: 'ghubx-backend',
     timestamp: new Date().toISOString(),
     mongo: {
       state: MONGO_STATE_LABELS[mongoose.connection.readyState] || 'unknown',
@@ -60,7 +65,7 @@ app.get('/api/health', (req, res) => {
 function sendFrontendPage(fileName, res) {
   const filePath = path.join(FRONTEND_ROOT, fileName);
   fs.readFile(filePath, 'utf8', (error, html) => {
-    if (error) return res.status(500).send('Không thể tải giao diện VidFlow.');
+    if (error) return res.status(500).send('Không thể tải giao diện GHUB X.');
     const bridgeTag = '<script src="/js/api-bridge.js"></script>';
     const output = html.includes('js/api-bridge.js')
       ? html
@@ -71,7 +76,8 @@ function sendFrontendPage(fileName, res) {
 }
 
 app.get('/', (req, res) => sendFrontendPage('index.html', res));
-app.get(['/admin', '/admin.html'], (req, res) => sendFrontendPage('admin.html', res));
+// Trang Admin yêu cầu đã đăng nhập — chưa đăng nhập sẽ tự chuyển tới trang login.
+app.get(['/admin', '/admin.html'], requireAdminPage, (req, res) => sendFrontendPage('admin.html', res));
 
 // Static assets after explicit HTML routes.
 app.use(express.static(FRONTEND_ROOT));
@@ -91,7 +97,7 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`\n🚀 VidFlow Server: http://localhost:${PORT}`);
+  console.log(`\n🚀 GHUB X Server: http://localhost:${PORT}`);
   console.log(`📡 API: http://localhost:${PORT}/api/videos`);
   console.log(`🛠️ Admin: http://localhost:${PORT}/admin\n`);
 });
