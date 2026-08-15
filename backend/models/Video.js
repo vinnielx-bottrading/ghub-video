@@ -61,6 +61,13 @@ const VideoSchema = new mongoose.Schema({
     type: String,
     default: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=85'
   },
+  // Ảnh xem trước dạng GIF ngắn (~3s, không tiếng) trích từ chính video —
+  // chỉ có với sourceType 'upload'/'direct' (nơi ffmpeg đọc được file thật).
+  // Hiển thị khi rê chuột vào thẻ video ở trang chủ, giống YouTube.
+  previewGif: {
+    type: String,
+    default: ''
+  },
   durationFormatted: {
     type: String,
     default: '10:00'

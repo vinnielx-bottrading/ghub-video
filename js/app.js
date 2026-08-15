@@ -305,6 +305,20 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
       card.addEventListener('click', () => openWatchView(video));
+
+      // Nếu video có ảnh xem trước GIF (trích từ chính video, chỉ có với file
+      // tải lên/link trực tiếp), đổi ảnh thumbnail thành GIF này khi rê chuột
+      // vào thẻ video — giống kiểu xem trước của YouTube.
+      if (video.previewGif) {
+        const thumbImg = card.querySelector('.thumbnail-img');
+        card.addEventListener('mouseenter', () => {
+          thumbImg.src = video.previewGif;
+        });
+        card.addEventListener('mouseleave', () => {
+          thumbImg.src = video.thumbnail;
+        });
+      }
+
       videoGrid.appendChild(card);
     });
   }

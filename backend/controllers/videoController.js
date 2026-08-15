@@ -2,7 +2,8 @@ const Video = require('../models/Video');
 const fs = require('fs');
 const path = require('path');
 const { resolveVideoSource, detectSourceType } = require('../utils/videoSource');
-const { extractThumbnailFromVideo } = require('../utils/thumbnailExtractor');
+const { extractThumbnailFromVideo, extractPreviewGif } = require('../utils/thumbnailExtractor');
+const { generatePlaceholderThumbnail } = require('../utils/placeholderThumbnail');
 
 const TRENDING_MIN_VIEWS = 300000;
 const THUMBNAILS_DIR = path.join(__dirname, '..', 'uploads', 'thumbnails');
@@ -97,6 +98,7 @@ exports.createVideo = async (req, res) => {
     let sourceType = 'direct';
     let platform = 'direct';
     let embedUrl = '';
+    let previewGif = '';
 
     if (req.files?.video?.[0]) {
       // --- Cách 1: Tải file video lên server ---
@@ -111,6 +113,11 @@ exports.createVideo = async (req, res) => {
         const autoFile = await extractThumbnailFromVideo(uploadedVideoPath, THUMBNAILS_DIR);
         if (autoFile) thumbnail = `${hostUrl}/uploads/thumbnails/${autoFile}`;
       }
+
+      // File tải lên đọc được trực tiếp từ đĩa — luôn thử trích thêm 1 đoạn
+      // GIF ngắn làm ảnh xem trước khi rê chuột (không chặn nếu thất bại).
+      const gifFile = await extractPreviewGif(uploadedVideoPath, THUMBNAILS_DIR);
+      if (gifFile) previewGif = `${hostUrl}/uploads/thumbnails/${gifFile}`;
     } else if (req.body.sourceInput?.trim()) {
       // --- Cách 2: Dán link / share link / mã nhúng iframe ---
       const resolved = await resolveVideoSource(req.body.sourceInput);
@@ -124,8 +131,12 @@ exports.createVideo = async (req, res) => {
 
       if (!thumbnail && resolved.thumbnail) thumbnail = resolved.thumbnail;
 
-      // Link trực tiếp (.mp4/.m3u8...) chưa có thumbnail → thử trích bằng ffmpeg.
-      if (!thumbnail && sourceType === 'direct') {
+      // Link trực tiếp (.mp4/.m3u8...) chưa có thumbnail → thử trích bằng
+      // ffmpeg. KHÔNG tự trích thêm GIF xem trước ở đây: link này thường ở
+      // server ngoài, tốc độ không lường trước được — nếu server đó chậm,
+      // request Thêm Video sẽ bị treo lâu hoặc time-out. GIF xem trước chỉ
+      // tự làm cho video "Tải file lên" (đọc từ đĩa cục bộ, nhanh & ổn định).
+      if (sourceType === 'direct' && !thumbnail) {
         const autoFile = await extractThumbnailFromVideo(videoUrl, THUMBNAILS_DIR);
         if (autoFile) thumbnail = `${hostUrl}/uploads/thumbnails/${autoFile}`;
       }
@@ -138,6 +149,11 @@ exports.createVideo = async (req, res) => {
         embedUrl = resolved.embedUrl || '';
         videoUrl = resolved.videoUrl;
         if (!thumbnail && resolved.thumbnail) thumbnail = resolved.thumbnail;
+
+        if (sourceType === 'direct' && !thumbnail) {
+          const autoFile = await extractThumbnailFromVideo(videoUrl, THUMBNAILS_DIR);
+          if (autoFile) thumbnail = `${hostUrl}/uploads/thumbnails/${autoFile}`;
+        }
       }
     }
 
@@ -149,6 +165,17 @@ exports.createVideo = async (req, res) => {
         success: false,
         message: 'Vui lòng cung cấp video: dán liên kết/mã nhúng, hoặc tải file lên.'
       });
+    }
+
+    // Vẫn chưa có thumbnail nào (nguồn nhúng lạ không có API công khai để
+    // suy ảnh, vd mixdrop/streamtape...) → tự tạo ảnh bìa placeholder có tên
+    // video, thay vì dùng 1 ảnh chung chung không liên quan đến nội dung.
+    if (!thumbnail) {
+      try {
+        thumbnail = generatePlaceholderThumbnail(req.body.title.trim());
+      } catch (error) {
+        thumbnail = DEFAULT_THUMBNAIL;
+      }
     }
 
     const tagsArray = req.body.tags
@@ -165,7 +192,8 @@ exports.createVideo = async (req, res) => {
       sourceType,
       platform,
       embedUrl,
-      thumbnail: thumbnail || DEFAULT_THUMBNAIL,
+      thumbnail,
+      previewGif,
       durationFormatted: req.body.durationFormatted || '05:30',
       category: req.body.category || 'Lập trình',
       quality: req.body.quality || '4K 60fps',
@@ -216,6 +244,21 @@ exports.updateVideo = async (req, res) => {
       }
     }
 
+    // Vẫn chưa có thumbnail (nguồn nhúng lạ không suy được ảnh) → tạo ảnh bìa
+    // placeholder từ tiêu đề, ưu tiên tiêu đề mới nếu có sửa, không thì lấy
+    // tiêu đề hiện tại trong DB.
+    if (typeof update.thumbnail === 'string' && !update.thumbnail.trim()) {
+      delete update.thumbnail; // chuỗi rỗng gửi lên nghĩa là "để trống", không phải "xoá"
+    }
+    if (!update.thumbnail) {
+      try {
+        const titleForPlaceholder = update.title?.trim() || (await Video.findById(req.params.id).select('title'))?.title;
+        if (titleForPlaceholder) update.thumbnail = generatePlaceholderThumbnail(titleForPlaceholder);
+      } catch (error) {
+        // Không lấy được tiêu đề (vd ID sai) — bỏ qua, để findByIdAndUpdate bên dưới tự báo lỗi 404.
+      }
+    }
+
     if (update.isHeroSpotlight === true || update.isHeroSpotlight === 'true') {
       await Video.updateMany({ _id: { $ne: req.params.id } }, { $set: { isHeroSpotlight: false } });
       update.isHeroSpotlight = true;
@@ -236,7 +279,7 @@ exports.deleteVideo = async (req, res) => {
     if (!video) return res.status(404).json({ success: false, message: 'Không tìm thấy video' });
 
     // Delete local uploaded assets when the video belongs to this server.
-    for (const url of [video.videoUrl, video.thumbnail]) {
+    for (const url of [video.videoUrl, video.thumbnail, video.previewGif]) {
       if (!url || !url.includes('/uploads/')) continue;
       const relative = url.split('/uploads/')[1];
       const filePath = path.join(__dirname, '..', 'uploads', relative);

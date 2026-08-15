@@ -1,10 +1,12 @@
 // Nhận diện & phân giải "nguồn video" mà admin dán vào ô Thêm Video:
 // - Link YouTube (watch/share/short link)
 // - Link Vimeo
-// - Mã nhúng <iframe> từ bất kỳ trang streaming nào
+// - Link Dailymotion
+// - Link TikTok
+// - Mã nhúng <iframe> từ bất kỳ trang streaming nào (mixdrop, streamtape, doodstream...)
 // - Link trực tiếp .mp4 / .m3u8 / ...
-// Không dùng bất kỳ API key nào — chỉ dùng oEmbed công khai của Vimeo và
-// quy ước URL thumbnail công khai của YouTube.
+// Không dùng bất kỳ API key nào — chỉ dùng oEmbed công khai (Vimeo, TikTok)
+// và quy ước URL thumbnail công khai (YouTube, Dailymotion).
 
 const OEMBED_TIMEOUT_MS = 6000;
 
@@ -14,6 +16,8 @@ function detectSourceType(rawInput) {
   if (/<iframe[\s\S]*src\s*=/i.test(input)) return 'iframe';
   if (/(youtube\.com|youtu\.be)/i.test(input)) return 'youtube';
   if (/vimeo\.com/i.test(input)) return 'vimeo';
+  if (/(dailymotion\.com|dai\.ly)/i.test(input)) return 'dailymotion';
+  if (/tiktok\.com/i.test(input)) return 'tiktok';
   if (/^https?:\/\//i.test(input)) return 'direct';
   return null;
 }
@@ -27,6 +31,16 @@ function extractYouTubeId(input) {
 
 function extractVimeoId(input) {
   const match = input.match(/vimeo\.com\/(?:video\/|external\/)?(\d+)/);
+  return match ? match[1] : null;
+}
+
+function extractDailymotionId(input) {
+  const match = input.match(/(?:dailymotion\.com\/(?:video|embed\/video)\/|dai\.ly\/)([a-zA-Z0-9]+)/);
+  return match ? match[1].split('_')[0] : null;
+}
+
+function extractTikTokId(input) {
+  const match = input.match(/tiktok\.com\/[^/]+\/video\/(\d+)/);
   return match ? match[1] : null;
 }
 
@@ -61,9 +75,68 @@ async function fetchVimeoThumbnail(vimeoId) {
   }
 }
 
+// TikTok có oEmbed công khai chính thức, không cần app token — nhận thẳng
+// URL video gốc (không cần tự tách ID) và trả về thumbnail_url thật.
+async function fetchTikTokThumbnail(originalUrl) {
+  try {
+    const url = `https://www.tiktok.com/oembed?url=${encodeURIComponent(originalUrl)}`;
+    const response = await fetch(url, { signal: AbortSignal.timeout(OEMBED_TIMEOUT_MS) });
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data.thumbnail_url || null;
+  } catch (error) {
+    return null;
+  }
+}
+
+// Nhận diện các nền tảng có cách suy thumbnail công khai đã biết — dùng
+// chung cho cả trường hợp dán link trực tiếp LẪN trường hợp src bên trong
+// mã nhúng <iframe> hoá ra lại là 1 trong các nền tảng này.
+async function resolveKnownPlatform(input) {
+  if (/(youtube\.com|youtu\.be)/i.test(input)) {
+    const id = extractYouTubeId(input);
+    if (!id) return null;
+    return {
+      platform: 'youtube',
+      embedUrl: `https://www.youtube.com/embed/${id}`,
+      thumbnail: `https://img.youtube.com/vi/${id}/hqdefault.jpg`,
+    };
+  }
+  if (/vimeo\.com/i.test(input)) {
+    const id = extractVimeoId(input);
+    if (!id) return null;
+    return {
+      platform: 'vimeo',
+      embedUrl: `https://player.vimeo.com/video/${id}`,
+      thumbnail: await fetchVimeoThumbnail(id),
+    };
+  }
+  if (/(dailymotion\.com|dai\.ly)/i.test(input)) {
+    const id = extractDailymotionId(input);
+    if (!id) return null;
+    return {
+      platform: 'dailymotion',
+      embedUrl: `https://www.dailymotion.com/embed/video/${id}`,
+      // Dailymotion có quy ước URL thumbnail công khai, không cần gọi API.
+      thumbnail: `https://www.dailymotion.com/thumbnail/video/${id}`,
+    };
+  }
+  if (/tiktok\.com/i.test(input)) {
+    const id = extractTikTokId(input);
+    if (!id) return null;
+    return {
+      platform: 'tiktok',
+      embedUrl: `https://www.tiktok.com/embed/v2/${id}`,
+      thumbnail: await fetchTikTokThumbnail(input),
+    };
+  }
+  return null;
+}
+
 // Phân giải 1 chuỗi nguồn (link hoặc mã nhúng) do admin dán vào, trả về đầy đủ
 // thông tin cần thiết để lưu Video: sourceType, platform, embedUrl, videoUrl,
-// thumbnail (có thể null nếu không tự suy ra được ở bước này).
+// thumbnail (có thể null nếu không tự suy ra được ở bước này — khi đó
+// videoController sẽ tự tạo ảnh bìa placeholder từ tiêu đề video).
 async function resolveVideoSource(rawInput) {
   const input = (rawInput || '').trim();
   const sourceType = detectSourceType(input);
@@ -72,36 +145,18 @@ async function resolveVideoSource(rawInput) {
     return { success: false, message: 'Không nhận diện được liên kết hoặc mã nhúng video.' };
   }
 
-  if (sourceType === 'youtube') {
-    const id = extractYouTubeId(input);
-    if (!id) {
-      return { success: false, message: 'Không tìm thấy ID video YouTube hợp lệ trong liên kết.' };
+  if (['youtube', 'vimeo', 'dailymotion', 'tiktok'].includes(sourceType)) {
+    const known = await resolveKnownPlatform(input);
+    if (!known) {
+      return { success: false, message: `Không tìm thấy ID video hợp lệ trong liên kết ${sourceType}.` };
     }
-    const embedUrl = `https://www.youtube.com/embed/${id}`;
     return {
       success: true,
-      sourceType: 'youtube',
-      platform: 'youtube',
-      embedUrl,
-      videoUrl: embedUrl,
-      thumbnail: `https://img.youtube.com/vi/${id}/hqdefault.jpg`,
-    };
-  }
-
-  if (sourceType === 'vimeo') {
-    const id = extractVimeoId(input);
-    if (!id) {
-      return { success: false, message: 'Không tìm thấy ID video Vimeo hợp lệ trong liên kết.' };
-    }
-    const embedUrl = `https://player.vimeo.com/video/${id}`;
-    const thumbnail = await fetchVimeoThumbnail(id);
-    return {
-      success: true,
-      sourceType: 'vimeo',
-      platform: 'vimeo',
-      embedUrl,
-      videoUrl: embedUrl,
-      thumbnail,
+      sourceType,
+      platform: known.platform,
+      embedUrl: known.embedUrl,
+      videoUrl: known.embedUrl,
+      thumbnail: known.thumbnail,
     };
   }
 
@@ -111,32 +166,19 @@ async function resolveVideoSource(rawInput) {
       return { success: false, message: 'Không tìm thấy thuộc tính src trong mã nhúng iframe.' };
     }
 
-    // Nếu src thực chất là YouTube/Vimeo thì vẫn tận dụng được cách suy thumbnail đã biết.
-    if (/(youtube\.com|youtu\.be)/i.test(src)) {
-      const id = extractYouTubeId(src);
-      if (id) {
-        return {
-          success: true,
-          sourceType: 'iframe',
-          platform: 'youtube',
-          embedUrl: src,
-          videoUrl: src,
-          thumbnail: `https://img.youtube.com/vi/${id}/hqdefault.jpg`,
-        };
-      }
-    }
-    if (/vimeo\.com/i.test(src)) {
-      const id = extractVimeoId(src);
-      if (id) {
-        return {
-          success: true,
-          sourceType: 'iframe',
-          platform: 'vimeo',
-          embedUrl: src,
-          videoUrl: src,
-          thumbnail: await fetchVimeoThumbnail(id),
-        };
-      }
+    // Nếu src thực chất là 1 trong các nền tảng đã biết (YouTube/Vimeo/
+    // Dailymotion/TikTok nhúng qua iframe) thì vẫn tận dụng được cách suy
+    // thumbnail tương ứng.
+    const known = await resolveKnownPlatform(src);
+    if (known) {
+      return {
+        success: true,
+        sourceType: 'iframe',
+        platform: known.platform,
+        embedUrl: src,
+        videoUrl: src,
+        thumbnail: known.thumbnail,
+      };
     }
 
     return {
@@ -145,7 +187,7 @@ async function resolveVideoSource(rawInput) {
       platform: 'other',
       embedUrl: src,
       videoUrl: src,
-      thumbnail: null, // không có cách chung để tự suy — admin có thể nhập tay
+      thumbnail: null, // không có API công khai để tự suy — sẽ dùng ảnh placeholder
     };
   }
 
@@ -165,7 +207,10 @@ module.exports = {
   detectSourceType,
   extractYouTubeId,
   extractVimeoId,
+  extractDailymotionId,
+  extractTikTokId,
   extractIframeSrc,
   fetchVimeoThumbnail,
+  fetchTikTokThumbnail,
   resolveVideoSource,
 };

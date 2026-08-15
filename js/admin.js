@@ -367,7 +367,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } else if (json.sourceType === 'direct') {
         editSourcePreviewNote.textContent = 'Sẽ tự trích khung hình làm thumbnail khi lưu (nếu ô Thumbnail để trống).';
       } else {
-        editSourcePreviewNote.textContent = 'Không tự suy được ảnh bìa cho nguồn này — có thể nhập tay ở ô Thumbnail.';
+        editSourcePreviewNote.textContent = 'Nguồn này không có cách lấy ảnh thật công khai — hệ thống sẽ tự tạo 1 ảnh bìa có tên video khi lưu (nếu ô Thumbnail để trống).';
       }
 
       showToast('Đã nhận diện nguồn video! Nhớ bấm "Lưu Thay Đổi" để áp dụng.', 'success');
@@ -516,7 +516,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } else if (json.sourceType === 'direct') {
         sourcePreviewNote.textContent = 'Sẽ tự trích 1 khung hình làm thumbnail khi lưu video.';
       } else {
-        sourcePreviewNote.textContent = 'Không tự suy được ảnh bìa cho nguồn này — hãy nhập thủ công bên dưới nếu cần.';
+        sourcePreviewNote.textContent = 'Nguồn này không có cách lấy ảnh thật công khai (thường gặp ở link nhúng từ mixdrop/streamtape...) — hệ thống sẽ tự tạo 1 ảnh bìa có tên video khi lưu. Bạn vẫn có thể nhập ảnh bìa riêng bên dưới nếu muốn.';
       }
 
       showToast('Đã nhận diện nguồn video!', 'success');
