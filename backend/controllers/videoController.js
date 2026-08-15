@@ -1,7 +1,7 @@
 const Video = require('../models/Video');
 const fs = require('fs');
 const path = require('path');
-const { resolveVideoSource } = require('../utils/videoSource');
+const { resolveVideoSource, detectSourceType } = require('../utils/videoSource');
 const { extractThumbnailFromVideo } = require('../utils/thumbnailExtractor');
 
 const TRENDING_MIN_VIEWS = 300000;
@@ -190,6 +190,31 @@ exports.updateVideo = async (req, res) => {
   try {
     const update = { ...req.body };
     if (typeof update.tags === 'string') update.tags = update.tags.split(',').map(t => t.trim()).filter(Boolean);
+
+    // Nếu ô "Đường dẫn Video URL" được sửa thành 1 link YouTube/Vimeo hoặc dán
+    // nguyên mã nhúng <iframe> (thay vì link file .mp4/.m3u8 trực tiếp), tự
+    // động phân giải lại thành sourceType/embedUrl đúng — nếu không, chuỗi
+    // <iframe...> hoặc link share sẽ bị lưu thẳng vào videoUrl khiến thẻ
+    // <video> ở trang xem không phát được gì (chính là lỗi vừa gặp).
+    if (typeof update.videoUrl === 'string' && update.videoUrl.trim()) {
+      const detected = detectSourceType(update.videoUrl);
+      if (detected && detected !== 'direct') {
+        const resolved = await resolveVideoSource(update.videoUrl);
+        if (resolved.success) {
+          update.sourceType = resolved.sourceType;
+          update.platform = resolved.platform;
+          update.embedUrl = resolved.embedUrl || '';
+          update.videoUrl = resolved.videoUrl;
+          if (!update.thumbnail?.trim() && resolved.thumbnail) update.thumbnail = resolved.thumbnail;
+        }
+      } else if (detected === 'direct') {
+        // Link trực tiếp bình thường — đảm bảo không còn sót embedUrl/sourceType
+        // nhúng từ trước (vd: sửa 1 video YouTube cũ thành link .mp4 trực tiếp).
+        update.sourceType = 'direct';
+        update.platform = 'direct';
+        update.embedUrl = '';
+      }
+    }
 
     if (update.isHeroSpotlight === true || update.isHeroSpotlight === 'true') {
       await Video.updateMany({ _id: { $ne: req.params.id } }, { $set: { isHeroSpotlight: false } });

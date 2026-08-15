@@ -40,6 +40,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const editVerifiedCheckbox = document.getElementById('editVerifiedCheckbox');
   const editHeroCheckbox = document.getElementById('editHeroCheckbox');
   const saveEditBtn = document.getElementById('saveEditBtn');
+  const editDetectSourceBtn = document.getElementById('editDetectSourceBtn');
+  const editSourcePreview = document.getElementById('editSourcePreview');
+  const editSourcePreviewImg = document.getElementById('editSourcePreviewImg');
+  const editSourcePreviewBadge = document.getElementById('editSourcePreviewBadge');
+  const editSourcePreviewNote = document.getElementById('editSourcePreviewNote');
 
   // Add Modal Elements
   const openAddModalBtn = document.getElementById('openAddModalBtn');
@@ -292,6 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
     editChannelNameInput.value = channel.name || 'GHUB X Creator';
     editVerifiedCheckbox.checked = channel.verified || false;
     editHeroCheckbox.checked = video.isHeroSpotlight || false;
+    editSourcePreview.style.display = 'none';
 
     editModal.classList.add('active');
   }
@@ -299,7 +305,66 @@ document.addEventListener('DOMContentLoaded', () => {
   function closeEditModal() {
     editModal.classList.remove('active');
     currentEditingId = null;
+    editSourcePreview.style.display = 'none';
   }
+
+  const EDIT_PLATFORM_LABELS = {
+    youtube: 'YouTube',
+    vimeo: 'Vimeo',
+    direct: 'Link trực tiếp',
+    upload: 'File tải lên',
+    other: 'Nhúng (Embed)'
+  };
+
+  editDetectSourceBtn.addEventListener('click', async () => {
+    const input = editVideoUrlInput.value.trim();
+    if (!input) {
+      showToast('Vui lòng nhập link hoặc mã nhúng trước khi nhận diện.', 'error');
+      return;
+    }
+
+    editDetectSourceBtn.disabled = true;
+    editDetectSourceBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang nhận diện...';
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/videos/detect-source`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input })
+      });
+      if (redirectIfSessionExpired(res)) return;
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        editSourcePreview.style.display = 'none';
+        showToast(json.message || 'Không nhận diện được nguồn video.', 'error');
+        return;
+      }
+
+      editSourcePreview.style.display = 'flex';
+      editSourcePreviewBadge.textContent = EDIT_PLATFORM_LABELS[json.platform] || json.sourceType;
+      editSourcePreviewImg.src = json.thumbnail || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=85';
+
+      if (json.thumbnail && !editThumbnailInput.value.trim()) {
+        editThumbnailInput.value = json.thumbnail;
+        editSourcePreviewNote.textContent = 'Đã tự điền ảnh bìa vào ô Thumbnail bên trên.';
+      } else if (json.thumbnail) {
+        editSourcePreviewNote.textContent = 'Đã tìm thấy ảnh bìa tự động (ô Thumbnail hiện có nội dung nên giữ nguyên).';
+      } else if (json.sourceType === 'direct') {
+        editSourcePreviewNote.textContent = 'Sẽ tự trích khung hình làm thumbnail khi lưu (nếu ô Thumbnail để trống).';
+      } else {
+        editSourcePreviewNote.textContent = 'Không tự suy được ảnh bìa cho nguồn này — có thể nhập tay ở ô Thumbnail.';
+      }
+
+      showToast('Đã nhận diện nguồn video! Nhớ bấm "Lưu Thay Đổi" để áp dụng.', 'success');
+    } catch (e) {
+      showToast('Không thể kết nối tới server để nhận diện nguồn video.', 'error');
+    } finally {
+      editDetectSourceBtn.disabled = false;
+      editDetectSourceBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Nhận diện &amp; Xem trước';
+    }
+  });
 
   closeEditModalBtn.addEventListener('click', closeEditModal);
   cancelEditBtn.addEventListener('click', closeEditModal);

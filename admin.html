@@ -198,8 +198,18 @@
         </div>
 
         <div class="form-group-admin">
-          <label>Đường dẫn Video URL (MP4, HLS, Stream)</label>
-          <input type="text" id="editVideoUrlInput" class="form-input-admin" placeholder="https://...">
+          <label>Nguồn Video (link .mp4/.m3u8 trực tiếp, link YouTube/Vimeo, hoặc mã nhúng &lt;iframe&gt;)</label>
+          <input type="text" id="editVideoUrlInput" class="form-input-admin" placeholder="https://... hoặc <iframe src=...>">
+          <button type="button" class="btn-detect-source" id="editDetectSourceBtn" style="margin-top: 8px;">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Nhận diện &amp; Xem trước
+          </button>
+          <div class="source-preview" id="editSourcePreview" style="display:none; margin-top: 8px;">
+            <img id="editSourcePreviewImg" src="" alt="Xem trước thumbnail">
+            <div class="source-preview-info">
+              <span class="source-preview-badge" id="editSourcePreviewBadge">—</span>
+              <span class="source-preview-note" id="editSourcePreviewNote"></span>
+            </div>
+          </div>
         </div>
 
         <div class="form-group-admin">
