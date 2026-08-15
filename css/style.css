@@ -1504,3 +1504,284 @@ body {
     display: none;
   }
 }
+
+/* ==========================================================================
+   Auth: Nút đăng nhập trên header + phiên người dùng
+   ========================================================================== */
+.header-auth-slot {
+  display: flex;
+  align-items: center;
+}
+
+.btn-login-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  background: var(--accent-gradient);
+  border: none;
+  border-radius: var(--radius-pill);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  box-shadow: 0 4px 16px var(--accent-glow);
+  font-family: inherit;
+}
+.btn-login-header:hover {
+  filter: brightness(1.08);
+}
+
+.user-session-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px 4px 4px;
+  background: var(--bg-pill);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-pill);
+}
+.user-session-pill .user-avatar-ring {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.user-session-pill .user-avatar-ring i {
+  font-size: 1.6rem;
+  color: var(--text-secondary);
+}
+.user-session-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.btn-logout-mini {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: var(--bg-pill-hover);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+}
+.btn-logout-mini:hover {
+  background: var(--accent-subtle);
+  color: var(--accent-primary);
+}
+
+/* ==========================================================================
+   Auth Modal: Đăng nhập / Đăng ký người xem
+   ========================================================================== */
+.auth-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 5, 8, 0.75);
+  backdrop-filter: blur(6px);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.auth-modal-overlay.active {
+  display: flex;
+}
+
+.auth-modal-card {
+  width: 100%;
+  max-width: 400px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  padding: 32px 30px;
+  position: relative;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+.auth-modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: var(--bg-pill);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.auth-modal-close:hover {
+  background: var(--bg-pill-hover);
+  color: var(--text-primary);
+}
+
+.auth-modal-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 22px;
+}
+.auth-modal-brand .icon {
+  width: 38px;
+  height: 38px;
+  background: var(--accent-gradient);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 16px var(--accent-glow);
+}
+.auth-modal-brand .icon i {
+  color: #fff;
+  font-size: 1rem;
+}
+.auth-modal-brand span {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.auth-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 22px;
+  background: var(--bg-pill);
+  border-radius: var(--radius-pill);
+  padding: 4px;
+}
+.auth-tab-btn {
+  flex: 1;
+  padding: 9px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-tertiary);
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+.auth-tab-btn.active {
+  background: var(--accent-gradient);
+  color: #fff;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.auth-field label {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+.auth-field input {
+  width: 100%;
+  padding: 11px 13px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-glass);
+  background: var(--bg-pill);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-family: inherit;
+}
+.auth-field input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.auth-error {
+  display: none;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+  font-size: 0.8rem;
+  padding: 9px 11px;
+  border-radius: var(--radius-sm);
+}
+
+.auth-submit-btn {
+  padding: 12px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--accent-gradient);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  box-shadow: 0 4px 16px var(--accent-glow);
+  font-family: inherit;
+  margin-top: 4px;
+}
+.auth-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.captcha-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.captcha-img {
+  height: 56px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-glass);
+  flex: 1;
+  object-fit: cover;
+  background: var(--bg-pill);
+}
+.captcha-refresh-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-glass);
+  background: var(--bg-pill);
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.captcha-refresh-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-pill-hover);
+}
+.captcha-input {
+  width: 100%;
+  padding: 11px 13px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-glass);
+  background: var(--bg-pill);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-family: inherit;
+  letter-spacing: 2px;
+}
+.captcha-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+@media (max-width: 480px) {
+  .auth-modal-card {
+    padding: 26px 20px;
+  }
+}

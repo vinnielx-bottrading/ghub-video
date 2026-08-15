@@ -47,8 +47,8 @@
         <i class="fa-regular fa-bell"></i>
         <span class="badge-pulse"></span>
       </button>
-      <div class="user-avatar-ring" title="Tác giả">
-        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80" alt="User Profile">
+      <div id="headerAuthSlot" class="header-auth-slot">
+        <!-- Injected via js/auth.js: nút "Đăng nhập" hoặc phiên người dùng hiện tại -->
       </div>
     </div>
   </header>
@@ -279,11 +279,77 @@
     </div>
   </div>
 
+  <!-- Auth Modal: Đăng nhập / Đăng ký người xem -->
+  <div class="auth-modal-overlay" id="authModal">
+    <div class="auth-modal-card">
+      <button class="auth-modal-close" id="authModalClose" title="Đóng">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div class="auth-modal-brand">
+        <div class="icon"><i class="fa-solid fa-clapperboard"></i></div>
+        <span>GHUB <b>X</b></span>
+      </div>
+
+      <div class="auth-tabs">
+        <button type="button" class="auth-tab-btn active" id="authTabLogin">Đăng nhập</button>
+        <button type="button" class="auth-tab-btn" id="authTabRegister">Đăng ký</button>
+      </div>
+
+      <!-- Đăng nhập -->
+      <form class="auth-form" id="loginFormViewer" style="display:flex;">
+        <div class="auth-error" id="loginErrorViewer"></div>
+        <div class="auth-field">
+          <label for="loginUsernameViewer">Tên đăng nhập hoặc email</label>
+          <input type="text" id="loginUsernameViewer" autocomplete="username" required>
+        </div>
+        <div class="auth-field">
+          <label for="loginPasswordViewer">Mật khẩu</label>
+          <input type="password" id="loginPasswordViewer" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="auth-submit-btn" id="loginSubmitBtnViewer">Đăng nhập</button>
+      </form>
+
+      <!-- Đăng ký -->
+      <form class="auth-form" id="registerFormViewer" style="display:none;">
+        <div class="auth-error" id="registerErrorViewer"></div>
+        <div class="auth-field">
+          <label for="regUsername">Tên đăng nhập</label>
+          <input type="text" id="regUsername" autocomplete="username" minlength="3" maxlength="30" required>
+        </div>
+        <div class="auth-field">
+          <label for="regEmail">Email</label>
+          <input type="email" id="regEmail" autocomplete="email" required>
+        </div>
+        <div class="auth-field">
+          <label for="regPassword">Mật khẩu</label>
+          <input type="password" id="regPassword" autocomplete="new-password" minlength="6" required>
+        </div>
+        <div class="auth-field">
+          <label for="regPasswordConfirm">Nhập lại mật khẩu</label>
+          <input type="password" id="regPasswordConfirm" autocomplete="new-password" minlength="6" required>
+        </div>
+        <div class="auth-field">
+          <label>Mã xác nhận (CAPTCHA)</label>
+          <div class="captcha-row">
+            <img id="captchaImg" class="captcha-img" alt="Mã CAPTCHA" src="">
+            <button type="button" class="captcha-refresh-btn" id="captchaRefreshBtn" title="Tải mã khác">
+              <i class="fa-solid fa-rotate"></i>
+            </button>
+          </div>
+          <input type="text" id="regCaptchaInput" class="captcha-input" placeholder="Nhập mã trong ảnh" autocomplete="off" required>
+        </div>
+        <button type="submit" class="auth-submit-btn" id="registerSubmitBtnViewer">Đăng ký</button>
+      </form>
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- Scripts -->
   <script src="js/data.js"></script>
+  <script src="js/auth.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
