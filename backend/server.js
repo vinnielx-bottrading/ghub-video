@@ -5,38 +5,54 @@ const path = require('path');
 const connectDB = require('./config/db');
 const videoRoutes = require('./routes/videoRoutes');
 
-// Kết nối MongoDB
 connectDB();
 
 const app = express();
+const FRONTEND_ROOT = path.join(__dirname, '..');
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(cors({ origin: true, credentials: true }));
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
-// Cung cấp file tĩnh từ thư mục uploads (để trình duyệt xem được video/ảnh đã upload)
+// Uploaded video/thumbnail files.
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Routes API
+// REST API used by index.html and admin.html.
 app.use('/api/videos', videoRoutes);
 
-// Root API Health Check
-app.get('/', (req, res) => {
-  res.json({
-    status: 'online',
-    message: 'VidFlow Pro RESTful API Server is running 🚀',
-    endpoints: {
-      videos: '/api/videos',
-      hero: '/api/videos/hero',
-      categories: '/api/videos/categories'
-    }
+// Health check.
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'online', service: 'vidflow-backend', timestamp: new Date().toISOString() });
+});
+
+// Serve the frontend from the same Express service. This removes the old
+// frontend/backend URL mismatch when the project is deployed together.
+app.use(express.static(FRONTEND_ROOT, {
+  index: 'index.html',
+  extensions: ['html']
+}));
+
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(FRONTEND_ROOT, 'admin.html'));
+});
+
+// API 404s are JSON; unknown browser routes return the main page.
+app.use('/api', (req, res) => {
+  res.status(404).json({ success: false, message: 'API endpoint không tồn tại' });
+});
+
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || 'Internal server error'
   });
 });
 
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log(`\n🚀 VidFlow Backend Server đang chạy tại: http://localhost:${PORT}`);
-  console.log(`📡 API Endpoints sẵn sàng tại: http://localhost:${PORT}/api/videos\n`);
+  console.log(`\n🚀 VidFlow Server: http://localhost:${PORT}`);
+  console.log(`📡 API: http://localhost:${PORT}/api/videos`);
+  console.log(`🛠️ Admin: http://localhost:${PORT}/admin\n`);
 });
