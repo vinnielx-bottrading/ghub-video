@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 const connectDB = require('./config/db');
 const videoRoutes = require('./routes/videoRoutes');
 
@@ -25,18 +26,27 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'online', service: 'vidflow-backend', timestamp: new Date().toISOString() });
 });
 
-// Serve the frontend from the same Express service. This removes the old
-// frontend/backend URL mismatch when the project is deployed together.
-app.use(express.static(FRONTEND_ROOT, {
-  index: 'index.html',
-  extensions: ['html']
-}));
+// Serve frontend pages with the API bridge injected before the application code.
+function sendFrontendPage(fileName, res) {
+  const filePath = path.join(FRONTEND_ROOT, fileName);
+  fs.readFile(filePath, 'utf8', (error, html) => {
+    if (error) return res.status(500).send('Không thể tải giao diện VidFlow.');
+    const bridgeTag = '<script src="/js/api-bridge.js"></script>';
+    const output = html.includes('js/api-bridge.js')
+      ? html
+      : html.replace(/<script src="js\/app\.js"><\/script>/, `${bridgeTag}\n  <script src="js/app.js"></script>`)
+            .replace(/<script src="js\/admin\.js"><\/script>/, `${bridgeTag}\n  <script src="js/admin.js"></script>`);
+    res.type('html').send(output);
+  });
+}
 
-app.get('/admin', (req, res) => {
-  res.sendFile(path.join(FRONTEND_ROOT, 'admin.html'));
-});
+app.get('/', (req, res) => sendFrontendPage('index.html', res));
+app.get(['/admin', '/admin.html'], (req, res) => sendFrontendPage('admin.html', res));
 
-// API 404s are JSON; unknown browser routes return the main page.
+// Static assets after explicit HTML routes.
+app.use(express.static(FRONTEND_ROOT));
+
+// API 404s are JSON.
 app.use('/api', (req, res) => {
   res.status(404).json({ success: false, message: 'API endpoint không tồn tại' });
 });
@@ -50,7 +60,6 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-
 app.listen(PORT, () => {
   console.log(`\n🚀 VidFlow Server: http://localhost:${PORT}`);
   console.log(`📡 API: http://localhost:${PORT}/api/videos`);
