@@ -43,15 +43,11 @@
     </div>
 
     <div class="header-right">
-      <button class="btn-upload-gradient" id="uploadBtn">
-        <i class="fa-solid fa-cloud-arrow-up"></i>
-        <span>Studio Tải Lên</span>
-      </button>
       <button class="icon-glass-btn" title="Thông báo mới">
         <i class="fa-regular fa-bell"></i>
         <span class="badge-pulse"></span>
       </button>
-      <div class="user-avatar-ring" title="Hồ sơ tài khoản">
+      <div class="user-avatar-ring" title="Tác giả">
         <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80" alt="User Profile">
       </div>
     </div>
@@ -279,58 +275,6 @@
         <div id="relatedVideosList">
           <!-- Dynamic related videos injected -->
         </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Studio Upload Modal -->
-  <div class="modal-overlay" id="uploadModal">
-    <div class="modal-glass-card">
-      <div class="modal-head">
-        <h2 class="modal-headline">
-          <i class="fa-solid fa-sparkles" style="color: var(--accent-primary);"></i>
-          <span>VidFlow Creator Studio</span>
-        </h2>
-        <button class="modal-close-icon" id="closeUploadModalBtn"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-
-      <div class="modal-content-body">
-        <div class="drop-zone-sleek" id="dropZone">
-          <i class="fa-solid fa-cloud-arrow-up drop-icon-glow"></i>
-          <h4 style="font-size: 1.05rem; font-weight: 700; color: #fff;">Kéo thả video 4K / HD vào đây</h4>
-          <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 6px;">Hỗ trợ MP4, MOV, WebM (HLS Transcoding tự động)</p>
-          <input type="file" id="fileInput" accept="video/*" style="display: none;">
-        </div>
-
-        <div class="form-group-sleek">
-          <label>Tiêu đề video *</label>
-          <input type="text" id="videoTitleInput" class="form-input-sleek" placeholder="Nhập tiêu đề điện ảnh cho video...">
-        </div>
-
-        <div class="form-group-sleek">
-          <label>Mô tả chi tiết</label>
-          <textarea id="videoDescInput" class="form-textarea-sleek" placeholder="Mô tả nội dung, đường link, timestamps..."></textarea>
-        </div>
-
-        <div class="form-group-sleek">
-          <label>Thể loại</label>
-          <select id="videoCategorySelect" class="form-select-sleek">
-            <!-- Injected -->
-          </select>
-        </div>
-
-        <div class="form-group-sleek">
-          <label>Thẻ Tags (phân cách bằng dấu phẩy)</label>
-          <input type="text" id="videoTagsInput" class="form-input-sleek" placeholder="ví dụ: 4k, coding, podcast, ai...">
-        </div>
-      </div>
-
-      <div class="modal-foot">
-        <button class="btn-glass-cancel" id="cancelUploadBtn">Hủy</button>
-        <button class="btn-upload-gradient" id="submitPublishBtn">
-          <i class="fa-solid fa-upload"></i>
-          <span>Xuất bản ngay</span>
-        </button>
       </div>
     </div>
   </div>

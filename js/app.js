@@ -2,7 +2,12 @@
 // VidFlow Pro - Frontend Application Logic with MongoDB API Integration
 // ==========================================================================
 
-const API_BASE_URL = 'https://ghub-video.onrender.com/api';
+// 👇 Nếu link Render của bạn có tên khác, hãy đổi link ở dòng dưới:
+const RENDER_BACKEND_URL = 'https://vidflow-backend.onrender.com/api';
+
+const API_BASE_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? 'http://localhost:5000/api'
+  : RENDER_BACKEND_URL;
 
 document.addEventListener('DOMContentLoaded', () => {
   let videosData = [...SAMPLE_VIDEOS];
@@ -491,107 +496,6 @@ document.addEventListener('DOMContentLoaded', () => {
       relatedVideosList.appendChild(item);
     });
   }
-
-  // ==========================================================================
-  // Studio Upload Modal & MongoDB Upload Action
-  // ==========================================================================
-  uploadBtn.addEventListener('click', () => {
-    uploadModal.classList.add('active');
-  });
-
-  function closeUploadModal() {
-    uploadModal.classList.remove('active');
-    videoTitleInput.value = '';
-    videoDescInput.value = '';
-    videoTagsInput.value = '';
-    selectedVideoFile = null;
-  }
-
-  closeUploadModalBtn.addEventListener('click', closeUploadModal);
-  cancelUploadBtn.addEventListener('click', closeUploadModal);
-
-  dropZone.addEventListener('click', () => fileInput.click());
-  fileInput.addEventListener('change', (e) => {
-    if (e.target.files.length > 0) {
-      selectedVideoFile = e.target.files[0];
-      videoTitleInput.value = selectedVideoFile.name.replace(/\.[^/.]+$/, "");
-      showToast(`Đã chọn tệp: ${selectedVideoFile.name}`);
-    }
-  });
-
-  submitPublishBtn.addEventListener('click', async () => {
-    const title = videoTitleInput.value.trim();
-    if (!title) {
-      showToast("Vui lòng điền tiêu đề cho video!");
-      videoTitleInput.focus();
-      return;
-    }
-
-    submitPublishBtn.disabled = true;
-    submitPublishBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang tải lên MongoDB Server...';
-
-    if (isBackendConnected && selectedVideoFile) {
-      // Gửi FormData file thực tế lên Express & MongoDB
-      const formData = new FormData();
-      formData.append('video', selectedVideoFile);
-      formData.append('title', title);
-      formData.append('description', videoDescInput.value || '');
-      formData.append('category', videoCategorySelect.value);
-      formData.append('tags', videoTagsInput.value);
-
-      try {
-        const response = await fetch(`${API_BASE_URL}/videos`, {
-          method: 'POST',
-          body: formData
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          videosData.unshift(result.data);
-          filterVideos();
-          closeUploadModal();
-          showToast("🎉 Video đã tải lên MongoDB và xuất bản thành công!", "success");
-        } else {
-          throw new Error("Lỗi khi tải lên backend");
-        }
-      } catch (err) {
-        showToast("Có lỗi xảy ra khi tải lên backend, lưu tạm vào bộ nhớ!", "error");
-      }
-    } else {
-      // Mô phỏng nếu chưa kết nối backend
-      setTimeout(() => {
-        const newVideo = {
-          id: `vid-${Date.now()}`,
-          title: title,
-          description: videoDescInput.value || "Video tải lên từ Studio.",
-          videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-          thumbnail: "https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?auto=format&fit=crop&w=1200&q=85",
-          durationFormatted: "08:30",
-          views: 1,
-          uploadedAt: "Vừa xong",
-          category: videoCategorySelect.value,
-          tags: videoTagsInput.value ? videoTagsInput.value.split(',').map(t => t.trim()) : ["new"],
-          quality: "4K 60fps",
-          likes: 1,
-          channel: {
-            name: "Kênh Của Tôi (Pro)",
-            avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80",
-            subscribers: "1 người theo dõi",
-            verified: true
-          },
-          comments: []
-        };
-
-        videosData.unshift(newVideo);
-        filterVideos();
-        closeUploadModal();
-        showToast("🎉 Video đã xuất bản thành công!", "success");
-      }, 1000);
-    }
-
-    submitPublishBtn.disabled = false;
-    submitPublishBtn.innerHTML = '<i class="fa-solid fa-upload"></i> <span>Xuất bản ngay</span>';
-  });
 
   // Search & Global Events
   searchInput.addEventListener('input', filterVideos);
