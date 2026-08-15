@@ -40,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const watchOverlay = document.getElementById('watchOverlay');
   const closeWatchBtn = document.getElementById('closeWatchBtn');
   const mainVideoPlayer = document.getElementById('mainVideoPlayer');
+  const embedVideoPlayer = document.getElementById('embedVideoPlayer');
   const playPauseBtn = document.getElementById('playPauseBtn');
   const progressBar = document.getElementById('progressBar');
   const progressContainer = document.getElementById('progressContainer');
@@ -49,6 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const speedSelect = document.getElementById('speedSelect');
   const fullscreenBtn = document.getElementById('fullscreenBtn');
   const playerContainer = document.getElementById('playerContainer');
+  const playerControls = document.getElementById('playerControls');
 
   const watchTitle = document.getElementById('watchTitle');
   const watchViewsDate = document.getElementById('watchViewsDate');
@@ -292,8 +294,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const channel = video.channel || { name: 'Creator', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80', subscribers: '1.2K người theo dõi' };
 
+    // Video nhúng từ YouTube/Vimeo/embed khác dùng <iframe> — không điều khiển
+    // được bằng thanh công cụ tùy chỉnh (progress bar, tốc độ...) nên ẩn nó đi.
+    const isEmbedded = video.sourceType && ['youtube', 'vimeo', 'iframe'].includes(video.sourceType) && video.embedUrl;
+
+    if (isEmbedded) {
+      mainVideoPlayer.pause();
+      mainVideoPlayer.removeAttribute('src');
+      mainVideoPlayer.style.display = 'none';
+      const separator = video.embedUrl.includes('?') ? '&' : '?';
+      embedVideoPlayer.src = `${video.embedUrl}${separator}autoplay=1`;
+      embedVideoPlayer.style.display = 'block';
+      if (playerControls) playerControls.style.display = 'none';
+    } else {
+      embedVideoPlayer.style.display = 'none';
+      embedVideoPlayer.src = '';
+      mainVideoPlayer.style.display = 'block';
+      if (playerControls) playerControls.style.display = 'flex';
+      mainVideoPlayer.src = video.videoUrl;
+    }
+
     // Load Metadata
-    mainVideoPlayer.src = video.videoUrl;
     watchTitle.textContent = video.title;
     watchViewsDate.textContent = `${formatNumber(video.views)} lượt xem • ${video.uploadedAt || 'Mới đây'} • Thể loại: ${video.category}`;
     watchDesc.textContent = video.description || 'Không có mô tả.';
@@ -313,13 +334,16 @@ document.addEventListener('DOMContentLoaded', () => {
     watchOverlay.classList.add('active');
     document.body.style.overflow = 'hidden';
 
-    mainVideoPlayer.play().catch(() => {});
-    playPauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+    if (!isEmbedded) {
+      mainVideoPlayer.play().catch(() => {});
+      playPauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+    }
   }
 
   function closeWatchView() {
     mainVideoPlayer.pause();
     mainVideoPlayer.src = '';
+    embedVideoPlayer.src = ''; // dừng phát video nhúng (YouTube/Vimeo...) khi đóng
     watchOverlay.classList.remove('active');
     document.body.style.overflow = 'auto';
     currentVideo = null;

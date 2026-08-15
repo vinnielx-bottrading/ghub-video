@@ -171,9 +171,13 @@
         <div class="player-ambient-wrapper">
           <div class="player-container" id="playerContainer">
             <video class="player-video" id="mainVideoPlayer" playsinline></video>
-            
+
+            <!-- Dùng cho video nhúng từ YouTube/Vimeo/embed khác — không điều khiển
+                 được bằng thanh công cụ tùy chỉnh nên player-controls sẽ bị ẩn. -->
+            <iframe class="player-iframe" id="embedVideoPlayer" style="display:none;" src="" title="Video nhúng" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowfullscreen frameborder="0"></iframe>
+
             <!-- Frosted Floating Controls -->
-            <div class="player-controls">
+            <div class="player-controls" id="playerControls">
               <!-- Custom Scrubber Track -->
               <div class="progress-track" id="progressContainer">
                 <div class="progress-fill" id="progressBar"></div>

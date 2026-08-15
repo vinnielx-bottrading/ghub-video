@@ -1,8 +1,28 @@
 const Video = require('../models/Video');
 const fs = require('fs');
 const path = require('path');
+const { resolveVideoSource } = require('../utils/videoSource');
+const { extractThumbnailFromVideo } = require('../utils/thumbnailExtractor');
 
 const TRENDING_MIN_VIEWS = 300000;
+const THUMBNAILS_DIR = path.join(__dirname, '..', 'uploads', 'thumbnails');
+const DEFAULT_THUMBNAIL = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=85';
+
+// POST /api/videos/detect-source — admin dán link/mã nhúng, trả về preview
+// (platform, embedUrl, thumbnail tự suy nếu có) TRƯỚC khi tạo video thật.
+exports.detectVideoSource = async (req, res) => {
+  try {
+    const input = req.body.input;
+    if (!input || !input.trim()) {
+      return res.status(400).json({ success: false, message: 'Vui lòng dán liên kết hoặc mã nhúng video.' });
+    }
+    const resolved = await resolveVideoSource(input);
+    if (!resolved.success) return res.status(400).json(resolved);
+    res.json(resolved);
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 // GET /api/videos
 exports.getVideos = async (req, res) => {
@@ -62,23 +82,73 @@ exports.getVideoById = async (req, res) => {
   }
 };
 
-// POST /api/videos — JSON URL payload or multipart upload
+// POST /api/videos — hỗ trợ 3 cách nhập nguồn video:
+//  1) Tải file lên (multipart, req.files.video) — có thể kèm file thumbnail
+//  2) Dán link/mã nhúng vào req.body.sourceInput (YouTube/Vimeo/iframe/link trực tiếp)
+//  3) (Tương thích ngược) req.body.videoUrl trực tiếp như cũ
+// Nếu admin không cung cấp thumbnail, hệ thống tự suy ra: pattern URL cho
+// YouTube, oEmbed cho Vimeo, hoặc trích 1 khung hình bằng ffmpeg cho file
+// tải lên / link trực tiếp.
 exports.createVideo = async (req, res) => {
   try {
     const hostUrl = `${req.protocol}://${req.get('host')}`;
-    let videoUrl = req.body.videoUrl;
-    let thumbnail = req.body.thumbnail;
+    let videoUrl = req.body.videoUrl || '';
+    let thumbnail = req.body.thumbnail?.trim() || '';
+    let sourceType = 'direct';
+    let platform = 'direct';
+    let embedUrl = '';
 
-    if (req.files) {
-      if (req.files.video?.[0]) videoUrl = `${hostUrl}/uploads/videos/${req.files.video[0].filename}`;
-      if (req.files.thumbnail?.[0]) thumbnail = `${hostUrl}/uploads/thumbnails/${req.files.thumbnail[0].filename}`;
+    if (req.files?.video?.[0]) {
+      // --- Cách 1: Tải file video lên server ---
+      sourceType = 'upload';
+      platform = 'upload';
+      const uploadedVideoPath = req.files.video[0].path;
+      videoUrl = `${hostUrl}/uploads/videos/${req.files.video[0].filename}`;
+
+      if (req.files.thumbnail?.[0]) {
+        thumbnail = `${hostUrl}/uploads/thumbnails/${req.files.thumbnail[0].filename}`;
+      } else if (!thumbnail) {
+        const autoFile = await extractThumbnailFromVideo(uploadedVideoPath, THUMBNAILS_DIR);
+        if (autoFile) thumbnail = `${hostUrl}/uploads/thumbnails/${autoFile}`;
+      }
+    } else if (req.body.sourceInput?.trim()) {
+      // --- Cách 2: Dán link / share link / mã nhúng iframe ---
+      const resolved = await resolveVideoSource(req.body.sourceInput);
+      if (!resolved.success) {
+        return res.status(400).json({ success: false, message: resolved.message });
+      }
+      sourceType = resolved.sourceType;
+      platform = resolved.platform;
+      embedUrl = resolved.embedUrl || '';
+      videoUrl = resolved.videoUrl;
+
+      if (!thumbnail && resolved.thumbnail) thumbnail = resolved.thumbnail;
+
+      // Link trực tiếp (.mp4/.m3u8...) chưa có thumbnail → thử trích bằng ffmpeg.
+      if (!thumbnail && sourceType === 'direct') {
+        const autoFile = await extractThumbnailFromVideo(videoUrl, THUMBNAILS_DIR);
+        if (autoFile) thumbnail = `${hostUrl}/uploads/thumbnails/${autoFile}`;
+      }
+    } else if (videoUrl) {
+      // --- Cách 3: Tương thích ngược — videoUrl gửi thẳng như phiên bản cũ ---
+      const resolved = await resolveVideoSource(videoUrl);
+      if (resolved.success) {
+        sourceType = resolved.sourceType;
+        platform = resolved.platform;
+        embedUrl = resolved.embedUrl || '';
+        videoUrl = resolved.videoUrl;
+        if (!thumbnail && resolved.thumbnail) thumbnail = resolved.thumbnail;
+      }
     }
 
     if (!req.body.title?.trim()) {
       return res.status(400).json({ success: false, message: 'Vui lòng nhập tiêu đề video' });
     }
     if (!videoUrl) {
-      return res.status(400).json({ success: false, message: 'Vui lòng cung cấp videoUrl hoặc file video' });
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng cung cấp video: dán liên kết/mã nhúng, hoặc tải file lên.'
+      });
     }
 
     const tagsArray = req.body.tags
@@ -92,7 +162,10 @@ exports.createVideo = async (req, res) => {
       title: req.body.title.trim(),
       description: req.body.description || '',
       videoUrl,
-      thumbnail: thumbnail || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=85',
+      sourceType,
+      platform,
+      embedUrl,
+      thumbnail: thumbnail || DEFAULT_THUMBNAIL,
       durationFormatted: req.body.durationFormatted || '05:30',
       category: req.body.category || 'Lập trình',
       quality: req.body.quality || '4K 60fps',

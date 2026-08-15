@@ -38,6 +38,25 @@ const VideoSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Đường dẫn video là bắt buộc']
   },
+  // Nguồn video: 'upload' (file tải lên server), 'direct' (link .mp4/.m3u8 trực
+  // tiếp), 'youtube', 'vimeo', hoặc 'iframe' (mã nhúng từ trang streaming khác).
+  sourceType: {
+    type: String,
+    enum: ['upload', 'direct', 'youtube', 'vimeo', 'iframe'],
+    default: 'direct'
+  },
+  // Nền tảng gốc phát hiện được (youtube/vimeo/direct/other) — chỉ mang tính
+  // hiển thị/thống kê, không ảnh hưởng cách phát video.
+  platform: {
+    type: String,
+    default: 'direct'
+  },
+  // URL dùng để nhúng <iframe> khi sourceType là youtube/vimeo/iframe.
+  // Rỗng với upload/direct (những loại này phát bằng thẻ <video>).
+  embedUrl: {
+    type: String,
+    default: ''
+  },
   thumbnail: {
     type: String,
     default: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=85'

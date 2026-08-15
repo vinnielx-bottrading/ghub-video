@@ -275,14 +275,47 @@
           </div>
         </div>
 
+        <!-- Nguồn video: Link/Nhúng hoặc Tải file lên -->
         <div class="form-group-admin">
-          <label>Đường dẫn Thumbnail (Ảnh bìa)</label>
-          <input type="text" id="addThumbnailInput" class="form-input-admin" placeholder="https://images.unsplash.com/photo-...">
+          <label>Nguồn video *</label>
+          <div class="source-tabs">
+            <button type="button" class="source-tab-btn active" id="sourceTabLink" data-mode="link">
+              <i class="fa-solid fa-link"></i> Link / Nhúng
+            </button>
+            <button type="button" class="source-tab-btn" id="sourceTabUpload" data-mode="upload">
+              <i class="fa-solid fa-upload"></i> Tải file lên
+            </button>
+          </div>
+
+          <!-- Chế độ: dán link YouTube/Vimeo/link chia sẻ/link trực tiếp/mã nhúng iframe -->
+          <div id="sourcePanelLink" class="source-panel">
+            <textarea id="addSourceInput" class="form-textarea-admin" rows="2" placeholder="Dán link YouTube, Vimeo, link chia sẻ, link video trực tiếp (.mp4/.m3u8), hoặc mã nhúng <iframe>..."></textarea>
+            <button type="button" class="btn-detect-source" id="detectSourceBtn">
+              <i class="fa-solid fa-wand-magic-sparkles"></i> Nhận diện &amp; Xem trước
+            </button>
+            <div class="source-preview" id="sourcePreview" style="display:none;">
+              <img id="sourcePreviewImg" src="" alt="Xem trước thumbnail">
+              <div class="source-preview-info">
+                <span class="source-preview-badge" id="sourcePreviewBadge">—</span>
+                <span class="source-preview-note" id="sourcePreviewNote"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chế độ: tải file video trực tiếp từ máy -->
+          <div id="sourcePanelUpload" class="source-panel" style="display:none;">
+            <label class="file-drop-label" for="addVideoFileInput">
+              <i class="fa-solid fa-film"></i>
+              <span id="addVideoFileName">Chọn file video (MP4, WebM, MOV...)</span>
+            </label>
+            <input type="file" id="addVideoFileInput" accept="video/*" style="display:none;">
+            <p class="source-hint">Nếu không nhập/chọn ảnh bìa bên dưới, hệ thống sẽ tự động trích 1 khung hình từ video làm thumbnail.</p>
+          </div>
         </div>
 
         <div class="form-group-admin">
-          <label>Đường dẫn Video URL (MP4 / HLS Stream)</label>
-          <input type="text" id="addVideoUrlInput" class="form-input-admin" placeholder="https://...mp4">
+          <label>Đường dẫn Thumbnail (Ảnh bìa) — để trống để tự động suy ra</label>
+          <input type="text" id="addThumbnailInput" class="form-input-admin" placeholder="https://images.unsplash.com/photo-... (tùy chọn)">
         </div>
 
         <div class="form-group-admin">

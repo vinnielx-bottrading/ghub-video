@@ -49,12 +49,28 @@ document.addEventListener('DOMContentLoaded', () => {
   const addTitleInput = document.getElementById('addTitleInput');
   const addCategorySelect = document.getElementById('addCategorySelect');
   const addThumbnailInput = document.getElementById('addThumbnailInput');
-  const addVideoUrlInput = document.getElementById('addVideoUrlInput');
   const addDescInput = document.getElementById('addDescInput');
   const addTagsInput = document.getElementById('addTagsInput');
   const addChannelNameInput = document.getElementById('addChannelNameInput');
   const addHeroCheckbox = document.getElementById('addHeroCheckbox');
   const submitAddBtn = document.getElementById('submitAddBtn');
+
+  // Add Modal — Nguồn video (tabs Link/Nhúng vs Tải file lên)
+  const sourceTabLink = document.getElementById('sourceTabLink');
+  const sourceTabUpload = document.getElementById('sourceTabUpload');
+  const sourcePanelLink = document.getElementById('sourcePanelLink');
+  const sourcePanelUpload = document.getElementById('sourcePanelUpload');
+  const addSourceInput = document.getElementById('addSourceInput');
+  const detectSourceBtn = document.getElementById('detectSourceBtn');
+  const sourcePreview = document.getElementById('sourcePreview');
+  const sourcePreviewImg = document.getElementById('sourcePreviewImg');
+  const sourcePreviewBadge = document.getElementById('sourcePreviewBadge');
+  const sourcePreviewNote = document.getElementById('sourcePreviewNote');
+  const addVideoFileInput = document.getElementById('addVideoFileInput');
+  const addVideoFileName = document.getElementById('addVideoFileName');
+
+  let addSourceMode = 'link'; // 'link' | 'upload'
+  let detectedSource = null; // kết quả gần nhất từ /videos/detect-source
 
   // ==========================================================================
   // Helper Utilities
@@ -353,15 +369,103 @@ document.addEventListener('DOMContentLoaded', () => {
     addModal.classList.add('active');
   });
 
+  function resetSourcePreview() {
+    detectedSource = null;
+    sourcePreview.style.display = 'none';
+    sourcePreviewImg.src = '';
+    sourcePreviewBadge.textContent = '—';
+    sourcePreviewNote.textContent = '';
+  }
+
+  function switchSourceMode(mode) {
+    addSourceMode = mode;
+    const isLink = mode === 'link';
+    sourceTabLink.classList.toggle('active', isLink);
+    sourceTabUpload.classList.toggle('active', !isLink);
+    sourcePanelLink.style.display = isLink ? 'flex' : 'none';
+    sourcePanelUpload.style.display = isLink ? 'none' : 'flex';
+  }
+
+  sourceTabLink.addEventListener('click', () => switchSourceMode('link'));
+  sourceTabUpload.addEventListener('click', () => switchSourceMode('upload'));
+
+  addVideoFileInput.addEventListener('change', () => {
+    const file = addVideoFileInput.files[0];
+    addVideoFileName.textContent = file ? file.name : 'Chọn file video (MP4, WebM, MOV...)';
+  });
+
+  const PLATFORM_LABELS = {
+    youtube: 'YouTube',
+    vimeo: 'Vimeo',
+    direct: 'Link trực tiếp',
+    other: 'Nhúng (Embed)'
+  };
+
+  detectSourceBtn.addEventListener('click', async () => {
+    const input = addSourceInput.value.trim();
+    if (!input) {
+      showToast('Vui lòng dán link hoặc mã nhúng trước khi nhận diện.', 'error');
+      return;
+    }
+
+    detectSourceBtn.disabled = true;
+    detectSourceBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang nhận diện...';
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/videos/detect-source`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input })
+      });
+      if (redirectIfSessionExpired(res)) return;
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        resetSourcePreview();
+        showToast(json.message || 'Không nhận diện được nguồn video.', 'error');
+        return;
+      }
+
+      detectedSource = json;
+      sourcePreview.style.display = 'flex';
+      sourcePreviewBadge.textContent = PLATFORM_LABELS[json.platform] || json.sourceType;
+      sourcePreviewImg.src = json.thumbnail || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=85';
+
+      if (json.thumbnail) {
+        sourcePreviewNote.textContent = 'Đã tự suy ra thumbnail — sẽ dùng ảnh này nếu bạn không nhập ảnh bìa riêng.';
+        if (!addThumbnailInput.value.trim()) addThumbnailInput.placeholder = json.thumbnail;
+      } else if (json.sourceType === 'direct') {
+        sourcePreviewNote.textContent = 'Sẽ tự trích 1 khung hình làm thumbnail khi lưu video.';
+      } else {
+        sourcePreviewNote.textContent = 'Không tự suy được ảnh bìa cho nguồn này — hãy nhập thủ công bên dưới nếu cần.';
+      }
+
+      showToast('Đã nhận diện nguồn video!', 'success');
+    } catch (e) {
+      showToast('Không thể kết nối tới server để nhận diện nguồn video.', 'error');
+    } finally {
+      detectSourceBtn.disabled = false;
+      detectSourceBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Nhận diện &amp; Xem trước';
+    }
+  });
+
+  addSourceInput.addEventListener('input', resetSourcePreview);
+
   function closeAddModal() {
     addModal.classList.remove('active');
     addTitleInput.value = '';
     addThumbnailInput.value = '';
-    addVideoUrlInput.value = '';
+    addThumbnailInput.placeholder = 'https://images.unsplash.com/photo-... (tùy chọn)';
+    addSourceInput.value = '';
     addDescInput.value = '';
     addTagsInput.value = '';
     addChannelNameInput.value = '';
     addHeroCheckbox.checked = false;
+    addVideoFileInput.value = '';
+    addVideoFileName.textContent = 'Chọn file video (MP4, WebM, MOV...)';
+    resetSourcePreview();
+    switchSourceMode('link');
   }
 
   closeAddModalBtn.addEventListener('click', closeAddModal);
@@ -369,66 +473,75 @@ document.addEventListener('DOMContentLoaded', () => {
 
   submitAddBtn.addEventListener('click', async () => {
     const title = addTitleInput.value.trim();
-    const videoUrl = addVideoUrlInput.value.trim() || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
-    const thumbnail = addThumbnailInput.value.trim() || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=85';
-
     if (!title) {
       showToast("Vui lòng điền tiêu đề cho video mới!", "error");
       addTitleInput.focus();
       return;
     }
 
-    const newVideoPayload = {
+    const commonFields = {
       title,
-      videoUrl,
-      thumbnail,
       category: addCategorySelect.value,
       description: addDescInput.value.trim() || 'Video chất lượng cao được thêm từ Studio Dashboard.',
       tags: addTagsInput.value ? addTagsInput.value.split(',').map(t => t.trim()).filter(Boolean) : ['pro'],
       isHeroSpotlight: addHeroCheckbox.checked,
-      quality: '4K 60fps',
-      durationFormatted: '12:40',
-      views: 1,
-      likes: 1,
-      channel: {
-        name: addChannelNameInput.value.trim() || 'GHUB X Studio',
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
-        subscribers: '1.2K người theo dõi',
-        verified: true
-      }
+      channelName: addChannelNameInput.value.trim() || 'GHUB X Studio'
     };
+    const thumbnailOverride = addThumbnailInput.value.trim();
+
+    let requestOptions;
+
+    if (addSourceMode === 'upload') {
+      const file = addVideoFileInput.files[0];
+      if (!file) {
+        showToast('Vui lòng chọn 1 file video để tải lên.', 'error');
+        return;
+      }
+      const formData = new FormData();
+      Object.entries(commonFields).forEach(([key, value]) => {
+        if (key === 'tags') formData.append('tags', value.join(','));
+        else formData.append(key, value);
+      });
+      if (thumbnailOverride) formData.append('thumbnail', thumbnailOverride);
+      formData.append('video', file);
+      // KHÔNG set 'Content-Type' thủ công — trình duyệt tự thêm boundary cho multipart/form-data.
+      requestOptions = { method: 'POST', credentials: 'same-origin', body: formData };
+    } else {
+      const sourceInput = addSourceInput.value.trim();
+      if (!sourceInput) {
+        showToast('Vui lòng dán link hoặc mã nhúng video.', 'error');
+        return;
+      }
+      const jsonPayload = { ...commonFields, sourceInput };
+      if (thumbnailOverride) jsonPayload.thumbnail = thumbnailOverride;
+      requestOptions = {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(jsonPayload)
+      };
+    }
 
     submitAddBtn.disabled = true;
     submitAddBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang thêm vào MongoDB...';
 
     try {
-      const res = await fetch(`${API_BASE_URL}/videos`, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newVideoPayload)
-      });
+      const res = await fetch(`${API_BASE_URL}/videos`, requestOptions);
       if (redirectIfSessionExpired(res)) return;
 
-      if (res.ok) {
-        const result = await res.json();
-        allVideos.unshift(result.data);
-      } else {
-        newVideoPayload.id = `vid-${Date.now()}`;
-        allVideos.unshift(newVideoPayload);
-      }
+      const json = await res.json().catch(() => null);
 
-      updateDashboardMetrics();
-      renderTable();
-      closeAddModal();
-      showToast("🎉 Đã thêm video mới thành công vào MongoDB!");
+      if (res.ok && json?.success) {
+        allVideos.unshift(json.data);
+        updateDashboardMetrics();
+        renderTable();
+        closeAddModal();
+        showToast("🎉 Đã thêm video mới thành công vào MongoDB!");
+      } else {
+        showToast(json?.message || 'Có lỗi xảy ra khi thêm video.', 'error');
+      }
     } catch (e) {
-      newVideoPayload.id = `vid-${Date.now()}`;
-      allVideos.unshift(newVideoPayload);
-      updateDashboardMetrics();
-      renderTable();
-      closeAddModal();
-      showToast("Đã thêm video thành công!");
+      showToast('Không thể kết nối tới server để thêm video.', 'error');
     } finally {
       submitAddBtn.disabled = false;
       submitAddBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> <span>Tạo Video Mới</span>';

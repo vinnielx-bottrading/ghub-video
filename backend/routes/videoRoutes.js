@@ -11,12 +11,17 @@ const {
   deleteVideo,
   likeVideo,
   addComment,
-  getCategories
+  getCategories,
+  detectVideoSource
 } = require('../controllers/videoController');
 
 // Routes danh mục & Hero
 router.get('/categories', getCategories);
 router.get('/hero', getHeroVideo);
+
+// Nhận diện & xem trước nguồn video (link/mã nhúng) trước khi tạo — chỉ Admin.
+// Đặt trước router.route('/:id') để không bị hiểu nhầm là 1 ID.
+router.post('/detect-source', requireAdminApi, detectVideoSource);
 
 // Routes CRUD video — đọc (GET) công khai cho người xem; ghi (POST/PUT/DELETE)
 // chỉ dành cho Admin đã đăng nhập.
