@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+backend/node_modules/
+
+# Environment Variables & Secrets (Bảo mật mật khẩu database)
+.env
+backend/.env
+
+# Uploaded Media Files (Không đẩy file video dung lượng lớn lên git)
+backend/uploads/videos/*
+!backend/uploads/videos/.gitkeep
+backend/uploads/thumbnails/*
+!backend/uploads/thumbnails/.gitkeep
+
+# System & OS Files
+.DS_Store
+Thumbs.db
+*.log
