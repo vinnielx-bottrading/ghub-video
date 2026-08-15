@@ -1,5 +1,5 @@
 // ==========================================================================
-// VidFlow Studio - Admin Dashboard Management Logic
+// GHUB- Admin Dashboard Management Logic
 // ==========================================================================
 
 // Xem giải thích chi tiết trong js/app.js — dùng "/api" tương đối cùng origin
