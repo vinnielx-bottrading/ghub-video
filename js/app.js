@@ -188,13 +188,19 @@ document.addEventListener('DOMContentLoaded', () => {
       categoryBar.appendChild(chip);
     });
 
-    videoCategorySelect.innerHTML = '';
-    CATEGORIES.filter(c => c !== "Tất cả" && c !== "Thịnh hành 🔥").forEach(cat => {
-      const opt = document.createElement('option');
-      opt.value = cat;
-      opt.textContent = cat;
-      videoCategorySelect.appendChild(opt);
-    });
+    // videoCategorySelect chỉ tồn tại trên các trang có form upload (vd: Studio
+    // upload modal). Trang chủ không render phần tử này, nên phải kiểm tra null
+    // trước khi thao tác — nếu không cả renderCategories() sẽ crash giữa chừng
+    // và khiến danh sách video không hiển thị được cho người xem.
+    if (videoCategorySelect) {
+      videoCategorySelect.innerHTML = '';
+      CATEGORIES.filter(c => c !== "Tất cả" && c !== "Thịnh hành 🔥").forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat;
+        opt.textContent = cat;
+        videoCategorySelect.appendChild(opt);
+      });
+    }
   }
 
   // ==========================================================================
