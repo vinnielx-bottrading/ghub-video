@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GHUB X Studio - Trung Tâm Quản Trị & Nội Dung</title>
+  
+  <!-- Plus Jakarta Sans Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Admin Stylesheet -->
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+  <!-- Admin Header -->
+  <header class="admin-header">
+    <a href="index.html" class="admin-brand">
+      <div style="width: 34px; height: 34px; background: var(--accent-gradient); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 16px var(--accent-glow);">
+        <i class="fa-solid fa-clapperboard" style="color: #fff; font-size: 0.95rem;"></i>
+      </div>
+      <span>GHUB <span style="background: linear-gradient(135deg, #fff 40%, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">X</span></span>
+      <span class="brand-badge-admin">Studio Manager</span>
+    </a>
+
+    <div class="header-actions">
+      <a href="index.html" class="btn-view-site" title="Mở trang chủ người xem">
+        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+        <span>Xem Website Trực Tiếp</span>
+      </a>
+      <button class="btn-add-primary" id="openAddModalBtn">
+        <i class="fa-solid fa-plus"></i>
+        <span>Thêm Video Mới</span>
+      </button>
+      <button class="btn-view-site" id="adminLogoutBtn" title="Đăng xuất khỏi Admin">
+        <i class="fa-solid fa-right-from-bracket"></i>
+        <span>Đăng Xuất</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Admin Layout -->
+  <div class="admin-container">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="admin-sidebar">
+      <div class="admin-nav-group">
+        <a href="#" class="admin-nav-item active">
+          <i class="fa-solid fa-film"></i>
+          <span>Quản lý Video</span>
+        </a>
+        <a href="#" class="admin-nav-item">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>Thống kê phân tích</span>
+        </a>
+        <a href="#" class="admin-nav-item">
+          <i class="fa-solid fa-comments"></i>
+          <span>Bình luận & Đánh giá</span>
+        </a>
+        <a href="#" class="admin-nav-item">
+          <i class="fa-solid fa-sliders"></i>
+          <span>Cấu hình Website</span>
+        </a>
+      </div>
+
+      <!-- Server & Database Status Card -->
+      <div class="server-status-card">
+        <div class="status-dot-pulse"></div>
+        <div class="server-text" id="serverStatusText">
+          <strong>MongoDB Atlas Live</strong> Đang kết nối...
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="admin-main">
+      
+      <!-- Top Title -->
+      <div class="admin-title-row">
+        <div>
+          <h1 class="admin-headline">Bảng Điều Khiển Video</h1>
+          <p class="admin-subheadline">Quản lý toàn bộ nội dung, chỉnh sửa siêu dữ liệu, đặt video nổi bật trên MongoDB dễ dàng.</p>
+        </div>
+      </div>
+
+      <!-- Quick Metrics Stats Cards -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon-wrap">
+            <i class="fa-solid fa-video"></i>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value" id="totalVideos">0</div>
+            <div class="stat-label">Tổng số Video</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon-wrap" style="color: #38bdf8;">
+            <i class="fa-solid fa-eye"></i>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value" id="totalViews">0</div>
+            <div class="stat-label">Tổng lượt xem (Views)</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon-wrap" style="color: #f43f5e;">
+            <i class="fa-solid fa-heart"></i>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value" id="totalLikes">0</div>
+            <div class="stat-label">Tổng lượt Thích</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon-wrap" style="color: #10b981;">
+            <i class="fa-solid fa-tags"></i>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value" id="totalCategories">0</div>
+            <div class="stat-label">Thể loại chủ đề</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Toolbar: Search & Filters -->
+      <div class="table-toolbar">
+        <input type="text" id="searchAdminInput" class="search-admin-input" placeholder="🔍 Tìm kiếm video theo tên, kênh...">
+        <select id="categoryFilter" class="filter-select">
+          <option value="all">Tất cả thể loại</option>
+        </select>
+      </div>
+
+      <!-- Video Data Table -->
+      <div class="table-container">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th style="width: 50px;">#</th>
+              <th>Video & Kênh</th>
+              <th>Thể loại</th>
+              <th>Lượt xem</th>
+              <th>Lượt thích</th>
+              <th style="text-align: center;">Hero Banner</th>
+              <th style="width: 110px;">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody id="videoTableBody">
+            <!-- Dynamic rows injected via JS -->
+          </tbody>
+        </table>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Modal: Chỉnh Sửa Video (Edit Video) -->
+  <div class="admin-modal-overlay" id="editModal">
+    <div class="admin-modal-card">
+      <div class="admin-modal-head">
+        <h2 class="admin-modal-title">
+          <i class="fa-solid fa-pen-to-square" style="color: var(--accent-primary);"></i>
+          <span>Chỉnh Sửa Video</span>
+        </h2>
+        <button class="admin-modal-close" id="closeEditModalBtn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="admin-modal-body">
+        <div class="form-group-admin">
+          <label>Tiêu đề video *</label>
+          <input type="text" id="editTitleInput" class="form-input-admin" placeholder="Nhập tiêu đề video...">
+        </div>
+
+        <div class="form-grid-2col">
+          <div class="form-group-admin">
+            <label>Thể loại danh mục</label>
+            <select id="editCategorySelect" class="form-select-admin">
+              <!-- Injected -->
+            </select>
+          </div>
+          <div class="form-group-admin">
+            <label>Tên Kênh sáng tạo</label>
+            <input type="text" id="editChannelNameInput" class="form-input-admin" placeholder="Tên kênh...">
+          </div>
+        </div>
+
+        <div class="form-group-admin">
+          <label>Đường dẫn Thumbnail (Ảnh bìa)</label>
+          <input type="text" id="editThumbnailInput" class="form-input-admin" placeholder="https://...">
+        </div>
+
+        <div class="form-group-admin">
+          <label>Đường dẫn Video URL (MP4, HLS, Stream)</label>
+          <input type="text" id="editVideoUrlInput" class="form-input-admin" placeholder="https://...">
+        </div>
+
+        <div class="form-group-admin">
+          <label>Mô tả video</label>
+          <textarea id="editDescInput" class="form-textarea-admin" placeholder="Nội dung mô tả..."></textarea>
+        </div>
+
+        <div class="form-grid-2col">
+          <div class="form-group-admin">
+            <label>Lượt xem (Views)</label>
+            <input type="number" id="editViewsInput" class="form-input-admin" min="0">
+          </div>
+          <div class="form-group-admin">
+            <label>Lượt thích (Likes)</label>
+            <input type="number" id="editLikesInput" class="form-input-admin" min="0">
+          </div>
+        </div>
+
+        <div class="form-group-admin">
+          <label>Thẻ tags (phân cách bằng dấu phẩy)</label>
+          <input type="text" id="editTagsInput" class="form-input-admin" placeholder="4k, coding, podcast...">
+        </div>
+
+        <div style="display: flex; gap: 24px; margin-top: 10px;">
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 0.88rem; cursor: pointer; color: #fff;">
+            <input type="checkbox" id="editVerifiedCheckbox" style="accent-color: var(--accent-primary); width: 16px; height: 16px;">
+            <span>Kênh có tích xanh (Verified)</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 0.88rem; cursor: pointer; color: #fff;">
+            <input type="checkbox" id="editHeroCheckbox" style="accent-color: var(--accent-primary); width: 16px; height: 16px;">
+            <span>Đặt làm Hero Banner chính</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="admin-modal-foot">
+        <button class="btn-cancel-admin" id="cancelEditBtn">Hủy</button>
+        <button class="btn-add-primary" id="saveEditBtn">
+          <i class="fa-solid fa-floppy-disk"></i>
+          <span>Lưu Thay Đổi</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Thêm Video Mới (Add Video) -->
+  <div class="admin-modal-overlay" id="addModal">
+    <div class="admin-modal-card">
+      <div class="admin-modal-head">
+        <h2 class="admin-modal-title">
+          <i class="fa-solid fa-cloud-arrow-up" style="color: var(--accent-primary);"></i>
+          <span>Thêm Video Mới vào MongoDB</span>
+        </h2>
+        <button class="admin-modal-close" id="closeAddModalBtn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="admin-modal-body">
+        <div class="form-group-admin">
+          <label>Tiêu đề video *</label>
+          <input type="text" id="addTitleInput" class="form-input-admin" placeholder="Nhập tiêu đề điện ảnh hấp dẫn...">
+        </div>
+
+        <div class="form-grid-2col">
+          <div class="form-group-admin">
+            <label>Thể loại</label>
+            <select id="addCategorySelect" class="form-select-admin">
+              <!-- Injected -->
+            </select>
+          </div>
+          <div class="form-group-admin">
+            <label>Tên Kênh</label>
+            <input type="text" id="addChannelNameInput" class="form-input-admin" placeholder="Ví dụ: TechLead Vietnam">
+          </div>
+        </div>
+
+        <div class="form-group-admin">
+          <label>Đường dẫn Thumbnail (Ảnh bìa)</label>
+          <input type="text" id="addThumbnailInput" class="form-input-admin" placeholder="https://images.unsplash.com/photo-...">
+        </div>
+
+        <div class="form-group-admin">
+          <label>Đường dẫn Video URL (MP4 / HLS Stream)</label>
+          <input type="text" id="addVideoUrlInput" class="form-input-admin" placeholder="https://...mp4">
+        </div>
+
+        <div class="form-group-admin">
+          <label>Mô tả video</label>
+          <textarea id="addDescInput" class="form-textarea-admin" placeholder="Giới thiệu nội dung video..."></textarea>
+        </div>
+
+        <div class="form-group-admin">
+          <label>Thẻ tags</label>
+          <input type="text" id="addTagsInput" class="form-input-admin" placeholder="ví dụ: 4k, tech, tutorial...">
+        </div>
+
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 0.88rem; cursor: pointer; color: #fff;">
+          <input type="checkbox" id="addHeroCheckbox" style="accent-color: var(--accent-primary); width: 16px; height: 16px;">
+          <span>Đặt làm Hero Spotlight hiển thị nổi bật trên đầu trang chủ</span>
+        </label>
+      </div>
+
+      <div class="admin-modal-foot">
+        <button class="btn-cancel-admin" id="cancelAddBtn">Hủy</button>
+        <button class="btn-add-primary" id="submitAddBtn">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <span>Tạo Video Mới</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="admin-toast-container" id="adminToastContainer"></div>
+
+  <!-- Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
