@@ -2,12 +2,11 @@
 // VidFlow Studio - Admin Dashboard Management Logic
 // ==========================================================================
 
-// 👇 Nếu link Render của bạn có tên khác, hãy đổi link ở dòng dưới:
-const RENDER_BACKEND_URL = 'https://vidflow-backend.onrender.com/api';
-
+// Xem giải thích chi tiết trong js/app.js — dùng "/api" tương đối cùng origin
+// với backend Express khi deploy gộp 1 service trên Render (khuyến nghị).
 const API_BASE_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-  ? 'http://localhost:5000/api'
-  : RENDER_BACKEND_URL;
+  ? (window.location.port === '5000' ? '/api' : 'http://localhost:5000/api')
+  : `${window.location.origin}/api`;
 
 document.addEventListener('DOMContentLoaded', () => {
   let allVideos = [];
