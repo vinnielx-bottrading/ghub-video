@@ -150,8 +150,21 @@
                  CỐ Ý bỏ allow-top-navigation / allow-popups / allow-popups-to-escape-sandbox
                  để chặn kiểu quảng cáo "popunder"/redirect ép trang GHUB X nhảy sang
                  trang khác hoặc mở tab mới khi người xem bấm vào video nhúng
-                 (rất phổ biến ở các nguồn nhúng miễn phí như mixdrop/streamtape/...). -->
-            <iframe class="player-iframe" id="embedVideoPlayer" style="display:none;" src="" title="Video nhúng" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowfullscreen frameborder="0" sandbox="allow-scripts allow-same-origin" referrerpolicy="no-referrer"></iframe>
+                 (rất phổ biến ở các nguồn nhúng miễn phí như mixdrop/streamtape/byse/...).
+                 Lưu ý: sandbox cũng khiến Chrome chặn hẳn việc tải "plugin" (vd PDF
+                 giả dạng quảng cáo/dò ad-blocker) bên trong iframe — đây là giới hạn
+                 cứng của trình duyệt, không có token sandbox nào bật lại được, và
+                 thường KHÔNG phải nguyên nhân video không phát (nội dung đó thường chỉ
+                 là quảng cáo/tracking của nguồn nhúng, chặn được là tốt).
+                 referrerpolicy: đổi từ "no-referrer" sang "strict-origin-when-cross-origin"
+                 — nhiều nguồn nhúng miễn phí (mixdrop/streamtape/byse...) chặn hotlink
+                 bằng cách kiểm tra header Referer; nếu không gửi gì (no-referrer) họ có
+                 thể trả về trang lỗi/404 hoặc chặn hẳn nội dung thay vì phát video. Mức
+                 "strict-origin-when-cross-origin" chỉ gửi tên miền gốc (vd
+                 https://ghub-video.onrender.com), KHÔNG gửi đường dẫn trang/video cụ thể
+                 đang xem, vẫn giữ được phần lớn quyền riêng tư trong khi đáp ứng được
+                 kiểm tra referer của các nguồn nhúng này. -->
+            <iframe class="player-iframe" id="embedVideoPlayer" style="display:none;" src="" title="Video nhúng" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowfullscreen frameborder="0" sandbox="allow-scripts allow-same-origin" referrerpolicy="strict-origin-when-cross-origin"></iframe>
 
             <!-- Frosted Floating Controls -->
             <div class="player-controls" id="playerControls">
