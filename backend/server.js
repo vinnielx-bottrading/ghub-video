@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const mongoose = require('mongoose');
 const connectDB = require('./config/db');
 const videoRoutes = require('./routes/videoRoutes');
 
@@ -11,6 +12,13 @@ connectDB();
 const app = express();
 const FRONTEND_ROOT = path.join(__dirname, '..');
 
+const MONGO_STATE_LABELS = {
+  0: 'disconnected',
+  1: 'connected',
+  2: 'connecting',
+  3: 'disconnecting'
+};
+
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
@@ -18,12 +26,34 @@ app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 // Uploaded video/thumbnail files.
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Chặn sớm mọi request tới /api/videos nếu MongoDB chưa sẵn sàng, để trả lỗi
+// rõ ràng NGAY LẬP TỨC thay vì để request treo/timeout không rõ nguyên nhân
+// (đây chính là lý do trước đây khó biết lỗi đến từ Render hay MongoDB).
+app.use('/api/videos', (req, res, next) => {
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({
+      success: false,
+      message: 'Chưa kết nối được MongoDB Atlas. Kiểm tra biến môi trường MONGODB_URI trên Render và mục Network Access trên Atlas (cần cho phép 0.0.0.0/0).',
+      mongoState: MONGO_STATE_LABELS[mongoose.connection.readyState] || 'unknown'
+    });
+  }
+  next();
+});
+
 // REST API used by index.html and admin.html.
 app.use('/api/videos', videoRoutes);
 
-// Health check.
+// Health check — bao gồm cả trạng thái MongoDB để dễ chẩn đoán lỗi đến từ đâu.
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'online', service: 'vidflow-backend', timestamp: new Date().toISOString() });
+  res.json({
+    status: 'online',
+    service: 'vidflow-backend',
+    timestamp: new Date().toISOString(),
+    mongo: {
+      state: MONGO_STATE_LABELS[mongoose.connection.readyState] || 'unknown',
+      readyState: mongoose.connection.readyState
+    }
+  });
 });
 
 // Serve frontend pages with the API bridge injected before the application code.
