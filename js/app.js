@@ -2,12 +2,15 @@
 // VidFlow Pro - Frontend Application Logic with MongoDB API Integration
 // ==========================================================================
 
-// 👇 Nếu link Render của bạn có tên khác, hãy đổi link ở dòng dưới:
-const RENDER_BACKEND_URL = 'https://vidflow-backend.onrender.com/api';
-
+// Khi trang được phục vụ trực tiếp bởi backend Express (backend/server.js) —
+// đây là cách deploy được khuyến nghị (1 service Render duy nhất) — frontend
+// và API luôn nằm cùng origin, nên chỉ cần gọi "/api" tương đối. Điều này
+// tránh hẳn lỗi lệch domain khi tên service Render khác với giá trị hard-code.
+// Trường hợp local: chạy `node server.js` (port 3000, chỉ tĩnh) tách rời với
+// `npm start` trong backend/ (port 5000) thì mới cần trỏ thẳng tới port 5000.
 const API_BASE_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-  ? 'http://localhost:5000/api'
-  : RENDER_BACKEND_URL;
+  ? (window.location.port === '5000' ? '/api' : 'http://localhost:5000/api')
+  : `${window.location.origin}/api`;
 
 document.addEventListener('DOMContentLoaded', () => {
   let videosData = [...SAMPLE_VIDEOS];
@@ -120,12 +123,22 @@ document.addEventListener('DOMContentLoaded', () => {
       const response = await fetch(`${API_BASE_URL}/videos`);
       if (response.ok) {
         const json = await response.json();
-        if (json.success && json.data && json.data.length > 0) {
-          videosData = json.data;
+        // Đánh dấu đã kết nối MongoDB ngay khi API trả về hợp lệ — kể cả khi
+        // DB đang trống (chưa seed) — để các thao tác like/comment/view sau
+        // đó biết dùng backend thật thay vì rơi vào chế độ local mãi mãi.
+        if (json.success) {
           isBackendConnected = true;
-          console.log("✅ Đã tải dữ liệu từ MongoDB Server thành công:", videosData.length, "video");
-          showToast(`Đã đồng bộ ${videosData.length} video trực tiếp từ MongoDB!`, 'success');
+          if (json.data && json.data.length > 0) {
+            videosData = json.data;
+            console.log("✅ Đã tải dữ liệu từ MongoDB Server thành công:", videosData.length, "video");
+            showToast(`Đã đồng bộ ${videosData.length} video trực tiếp từ MongoDB!`, 'success');
+          } else {
+            console.log("ℹ️ MongoDB đã kết nối nhưng chưa có video nào (DB trống).");
+          }
         }
+      } else {
+        const json = await response.json().catch(() => null);
+        console.warn("⚠️ Backend phản hồi lỗi, đang dùng dữ liệu cục bộ:", json?.message || response.status);
       }
     } catch (err) {
       console.log("ℹ️ Backend MongoDB offline, đang sử dụng dữ liệu cục bộ.");
