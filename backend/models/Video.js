@@ -101,6 +101,13 @@ const VideoSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  // Nhiều video có thể cùng isHeroSpotlight = true — Hero Banner ở trang chủ
+  // hiển thị dạng slideshow xoay vòng qua tất cả. heroOrder cho phép admin tự
+  // sắp thứ tự (số nhỏ hơn hiện trước); mặc định 0 (dùng thứ tự tạo video).
+  heroOrder: {
+    type: Number,
+    default: 0
+  },
   badges: {
     type: [String],
     default: []

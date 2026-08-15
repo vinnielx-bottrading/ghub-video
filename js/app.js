@@ -13,7 +13,7 @@ const API_BASE_URL = (window.location.hostname === 'localhost' || window.locatio
   : `${window.location.origin}/api`;
 
 document.addEventListener('DOMContentLoaded', () => {
-  let videosData = [...SAMPLE_VIDEOS];
+  let videosData = [];
   let currentVideo = null;
   let activeCategory = "Tất cả";
   let isSubscribed = false;
@@ -27,17 +27,21 @@ document.addEventListener('DOMContentLoaded', () => {
   const sidebar = document.getElementById('sidebar');
   const menuToggleBtn = document.getElementById('menuToggleBtn');
   const navHomeBtn = document.getElementById('navHomeBtn');
-  const navTrendingBtn = document.getElementById('navTrendingBtn');
   const sidebarCategoryList = document.getElementById('sidebarCategoryList');
   const toastContainer = document.getElementById('toastContainer');
 
-  // Hero Spotlight Elements
+  // Hero Spotlight Elements (dạng slideshow — xem initHero()/renderHeroSlide())
   const heroSpotlight = document.getElementById('heroSpotlight');
   const heroBackdrop = document.getElementById('heroBackdrop');
+  const heroContent = document.querySelector('.hero-content');
   const heroTitle = document.getElementById('heroTitle');
   const heroDesc = document.getElementById('heroDesc');
   const heroPlayBtn = document.getElementById('heroPlayBtn');
   const heroSaveBtn = document.getElementById('heroSaveBtn');
+  const heroSlideNav = document.getElementById('heroSlideNav');
+  const heroPrevBtn = document.getElementById('heroPrevBtn');
+  const heroNextBtn = document.getElementById('heroNextBtn');
+  const heroDots = document.getElementById('heroDots');
 
   // Watch View Elements
   const watchOverlay = document.getElementById('watchOverlay');
@@ -72,21 +76,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const commentInput = document.getElementById('commentInput');
   const submitCommentBtn = document.getElementById('submitCommentBtn');
   const relatedVideosList = document.getElementById('relatedVideosList');
-
-  // Studio Upload Modal
-  const uploadBtn = document.getElementById('uploadBtn');
-  const uploadModal = document.getElementById('uploadModal');
-  const closeUploadModalBtn = document.getElementById('closeUploadModalBtn');
-  const cancelUploadBtn = document.getElementById('cancelUploadBtn');
-  const dropZone = document.getElementById('dropZone');
-  const fileInput = document.getElementById('fileInput');
-  const videoTitleInput = document.getElementById('videoTitleInput');
-  const videoDescInput = document.getElementById('videoDescInput');
-  const videoCategorySelect = document.getElementById('videoCategorySelect');
-  const videoTagsInput = document.getElementById('videoTagsInput');
-  const submitPublishBtn = document.getElementById('submitPublishBtn');
-
-  let selectedVideoFile = null;
 
   // ==========================================================================
   // Helper Utilities
@@ -151,15 +140,61 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================================================
-  // Hero Spotlight Initialization
+  // Hero Spotlight Slideshow — xoay vòng qua tất cả video admin đánh dấu
+  // "Hero Spotlight", sắp theo heroOrder do admin tự đặt trong trang quản trị.
   // ==========================================================================
-  function initHero() {
-    const heroData = videosData.find(v => v.isHeroSpotlight) || FEATURED_HERO || videosData[0];
+  let heroSlides = [];
+  let heroSlideIndex = 0;
+  let heroAutoTimer = null;
+  const HERO_AUTO_ROTATE_MS = 6000;
+
+  function stopHeroAutoRotate() {
+    if (heroAutoTimer) {
+      clearInterval(heroAutoTimer);
+      heroAutoTimer = null;
+    }
+  }
+
+  function startHeroAutoRotate() {
+    stopHeroAutoRotate();
+    if (heroSlides.length <= 1) return;
+    heroAutoTimer = setInterval(() => goToHeroSlide(heroSlideIndex + 1), HERO_AUTO_ROTATE_MS);
+  }
+
+  function renderHeroDots() {
+    if (!heroDots) return;
+    heroDots.innerHTML = '';
+    if (heroSlides.length <= 1) return;
+    heroSlides.forEach((_, i) => {
+      const dot = document.createElement('button');
+      dot.type = 'button';
+      dot.className = `hero-dot ${i === heroSlideIndex ? 'active' : ''}`;
+      dot.title = `Video ${i + 1}`;
+      dot.addEventListener('click', (e) => {
+        e.stopPropagation();
+        goToHeroSlide(i);
+        startHeroAutoRotate();
+      });
+      heroDots.appendChild(dot);
+    });
+  }
+
+  // Chuyển ảnh nền/nội dung sang slide hiện tại với hiệu ứng crossfade nhẹ
+  // (thay vì đổi đột ngột), đồng thời gắn lại các hành động Xem ngay/Lưu.
+  function renderHeroSlideContent() {
+    const heroData = heroSlides[heroSlideIndex];
     if (!heroData) return;
 
-    heroBackdrop.style.backgroundImage = `url('${heroData.thumbnail}')`;
-    heroTitle.textContent = heroData.title;
-    heroDesc.textContent = heroData.description;
+    heroBackdrop.classList.add('fading');
+    if (heroContent) heroContent.classList.add('fading');
+
+    setTimeout(() => {
+      heroBackdrop.style.backgroundImage = `url('${heroData.thumbnail}')`;
+      heroTitle.textContent = heroData.title;
+      heroDesc.textContent = heroData.description || '';
+      heroBackdrop.classList.remove('fading');
+      if (heroContent) heroContent.classList.remove('fading');
+    }, 220);
 
     heroPlayBtn.onclick = (e) => {
       e.stopPropagation();
@@ -174,6 +209,66 @@ document.addEventListener('DOMContentLoaded', () => {
     heroSpotlight.onclick = () => {
       openWatchView(heroData);
     };
+
+    renderHeroDots();
+  }
+
+  function goToHeroSlide(index) {
+    if (!heroSlides.length) return;
+    heroSlideIndex = ((index % heroSlides.length) + heroSlides.length) % heroSlides.length;
+    renderHeroSlideContent();
+  }
+
+  function initHero() {
+    // Ưu tiên các video admin đánh dấu Hero Spotlight (có thể nhiều video —
+    // sẽ trình chiếu dạng slideshow), sắp theo heroOrder rồi tới thứ tự tạo.
+    // Nếu chưa video nào được đánh dấu, fallback về video xem nhiều nhất để
+    // trang chủ không bị trống. Nếu hoàn toàn chưa có video nào (DB trống),
+    // ẩn hẳn Hero Banner — KHÔNG còn hiển thị dữ liệu mẫu/giả nữa.
+    stopHeroAutoRotate();
+
+    const marked = videosData
+      .filter(v => v.isHeroSpotlight)
+      .sort((a, b) => (a.heroOrder || 0) - (b.heroOrder || 0));
+
+    if (marked.length > 0) {
+      heroSlides = marked;
+    } else if (videosData.length > 0) {
+      const topViewed = [...videosData].sort((a, b) => (b.views || 0) - (a.views || 0))[0];
+      heroSlides = topViewed ? [topViewed] : [];
+    } else {
+      heroSlides = [];
+    }
+
+    if (heroSlides.length === 0) {
+      heroSpotlight.style.display = 'none';
+      return;
+    }
+
+    heroSpotlight.style.display = 'flex';
+    heroSlideIndex = 0;
+    if (heroSlideNav) heroSlideNav.style.display = heroSlides.length > 1 ? 'flex' : 'none';
+    renderHeroSlideContent();
+    startHeroAutoRotate();
+  }
+
+  if (heroPrevBtn) {
+    heroPrevBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      goToHeroSlide(heroSlideIndex - 1);
+      startHeroAutoRotate();
+    });
+  }
+  if (heroNextBtn) {
+    heroNextBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      goToHeroSlide(heroSlideIndex + 1);
+      startHeroAutoRotate();
+    });
+  }
+  if (heroSpotlight) {
+    heroSpotlight.addEventListener('mouseenter', stopHeroAutoRotate);
+    heroSpotlight.addEventListener('mouseleave', startHeroAutoRotate);
   }
 
   // ==========================================================================
@@ -187,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function syncCategoriesFromVideos() {
     const dynamicCats = Array.from(new Set(videosData.map(v => v.category).filter(Boolean)))
       .sort((a, b) => a.localeCompare(b, 'vi'));
-    const merged = ['Tất cả', 'Thịnh hành 🔥', ...dynamicCats];
+    const merged = ['Tất cả', ...dynamicCats];
     CATEGORIES.length = 0;
     CATEGORIES.push(...merged);
   }
@@ -211,30 +306,16 @@ document.addEventListener('DOMContentLoaded', () => {
       categoryBar.appendChild(chip);
     });
 
-    // videoCategorySelect chỉ tồn tại trên các trang có form upload (vd: Studio
-    // upload modal). Trang chủ không render phần tử này, nên phải kiểm tra null
-    // trước khi thao tác — nếu không cả renderCategories() sẽ crash giữa chừng
-    // và khiến danh sách video không hiển thị được cho người xem.
-    if (videoCategorySelect) {
-      videoCategorySelect.innerHTML = '';
-      CATEGORIES.filter(c => c !== "Tất cả" && c !== "Thịnh hành 🔥").forEach(cat => {
-        const opt = document.createElement('option');
-        opt.value = cat;
-        opt.textContent = cat;
-        videoCategorySelect.appendChild(opt);
-      });
-    }
-
     renderSidebarCategories();
     updateSidebarNavActiveState();
   }
 
   // Menu "Thể loại" ở sidebar trái — 1 mục cho mỗi category thật (không lặp
-  // lại "Tất cả"/"Thịnh hành" vì đã có sẵn ở nhóm "Khám phá" phía trên).
+  // lại "Tất cả" vì đã có sẵn ở nhóm "Khám phá" phía trên).
   function renderSidebarCategories() {
     if (!sidebarCategoryList) return;
     sidebarCategoryList.innerHTML = '';
-    const dynamicCats = CATEGORIES.filter(c => c !== 'Tất cả' && c !== 'Thịnh hành 🔥');
+    const dynamicCats = CATEGORIES.filter(c => c !== 'Tất cả');
 
     if (dynamicCats.length === 0) {
       sidebarCategoryList.innerHTML = '<div class="sidebar-empty-note">Chưa có thể loại nào</div>';
@@ -256,7 +337,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function updateSidebarNavActiveState() {
     if (navHomeBtn) navHomeBtn.classList.toggle('active', activeCategory === 'Tất cả');
-    if (navTrendingBtn) navTrendingBtn.classList.toggle('active', activeCategory === 'Thịnh hành 🔥');
   }
 
   // ==========================================================================
@@ -283,7 +363,6 @@ document.addEventListener('DOMContentLoaded', () => {
       card.innerHTML = `
         <div class="thumbnail-wrapper">
           <img src="${video.thumbnail}" alt="${video.title}" class="thumbnail-img" loading="lazy">
-          <span class="badge-quality-top">${video.quality || '4K 60FPS'}</span>
           <span class="duration-pill-bottom">${video.durationFormatted || '10:00'}</span>
         </div>
         <div class="video-info-row">
@@ -326,9 +405,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function filterVideos() {
     const query = searchInput.value.trim().toLowerCase();
     let filtered = videosData.filter(v => {
-      const matchCat = activeCategory === "Tất cả" || 
-                       (activeCategory === "Thịnh hành 🔥" && (v.views || 0) >= 300000) ||
-                       v.category === activeCategory;
+      const matchCat = activeCategory === "Tất cả" || v.category === activeCategory;
       const channelName = (v.channel && v.channel.name) ? v.channel.name.toLowerCase() : '';
       const matchQuery = !query || v.title.toLowerCase().includes(query) || 
                          (v.tags && v.tags.some(t => t.toLowerCase().includes(query))) ||
@@ -341,9 +418,32 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================================================
   // Watch View / Cinema Player Logic
   // ==========================================================================
-  async function openWatchView(video) {
+  // Mở trang xem video luôn cập nhật URL thật (?v=<id>) bằng History API —
+  // trước đây trang xem chỉ là 1 lớp overlay đè lên trang chủ, KHÔNG có URL
+  // riêng, nên khi người xem bấm Refresh (F5) sẽ mất hết và quay về trang chủ.
+  // Giờ refresh/mở lại link trực tiếp vẫn mở đúng video đang xem.
+  function getVideoId(video) {
+    return video && (video._id || video.id);
+  }
+
+  function updateWatchUrlForVideo(video) {
+    const id = getVideoId(video);
+    if (!id) return;
+    const url = `${window.location.pathname}?v=${encodeURIComponent(id)}`;
+    history.pushState({ videoId: id }, '', url);
+  }
+
+  function clearWatchUrl() {
+    history.pushState({}, '', window.location.pathname);
+  }
+
+  // pushUrl=false khi được gọi từ popstate (nút Back/Forward trình duyệt)
+  // hoặc khi khôi phục trạng thái lúc tải trang — tránh đẩy thêm 1 mục lịch
+  // sử mới đè lên mục mà trình duyệt vừa điều hướng tới.
+  async function openWatchView(video, { pushUrl = true } = {}) {
     currentVideo = video;
     isSubscribed = false;
+    if (pushUrl) updateWatchUrlForVideo(video);
 
     // Tăng lượt view trên MongoDB nếu backend online
     if (isBackendConnected && video._id) {
@@ -408,14 +508,34 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function closeWatchView() {
+  function closeWatchView({ updateHistory = true } = {}) {
     mainVideoPlayer.pause();
     mainVideoPlayer.src = '';
     embedVideoPlayer.src = ''; // dừng phát video nhúng (YouTube/Vimeo...) khi đóng
     watchOverlay.classList.remove('active');
     document.body.style.overflow = 'auto';
     currentVideo = null;
+    if (updateHistory && new URLSearchParams(window.location.search).get('v')) {
+      clearWatchUrl();
+    }
   }
+
+  // Nút Back/Forward trình duyệt: đọc lại ?v= trong URL và mở/đóng trang xem
+  // tương ứng — KHÔNG tự đẩy thêm lịch sử mới (pushUrl/updateHistory: false)
+  // vì trình duyệt đã tự điều hướng lịch sử rồi.
+  window.addEventListener('popstate', () => {
+    const id = new URLSearchParams(window.location.search).get('v');
+    if (id) {
+      const video = videosData.find(v => getVideoId(v) === id);
+      if (video) {
+        openWatchView(video, { pushUrl: false });
+      } else {
+        closeWatchView({ updateHistory: false });
+      }
+    } else {
+      closeWatchView({ updateHistory: false });
+    }
+  });
 
   // Player Controls
   playPauseBtn.addEventListener('click', () => {
@@ -626,11 +746,19 @@ document.addEventListener('DOMContentLoaded', () => {
       selectCategory('Tất cả');
     });
   }
-  if (navTrendingBtn) {
-    navTrendingBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      selectCategory('Thịnh hành 🔥');
-    });
+
+  // Nếu URL đang mở sẵn ?v=<id> (do refresh trang xem hoặc mở link chia sẻ
+  // trực tiếp), tự mở đúng video đó ngay sau khi có dữ liệu — KHÔNG đẩy thêm
+  // lịch sử mới vì URL hiện tại đã đúng rồi.
+  function openWatchViewFromUrlIfPresent() {
+    const id = new URLSearchParams(window.location.search).get('v');
+    if (!id) return;
+    const video = videosData.find(v => getVideoId(v) === id);
+    if (video) {
+      openWatchView(video, { pushUrl: false });
+    } else {
+      console.log('ℹ️ Không tìm thấy video từ liên kết (?v=' + id + ') trong dữ liệu hiện có.');
+    }
   }
 
   // Init App
@@ -645,5 +773,6 @@ document.addEventListener('DOMContentLoaded', () => {
     renderCategories();
     renderVideos(videosData);
     initHero();
+    openWatchViewFromUrlIfPresent();
   });
 });

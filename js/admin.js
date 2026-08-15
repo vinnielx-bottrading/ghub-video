@@ -41,6 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const editChannelNameInput = document.getElementById('editChannelNameInput');
   const editVerifiedCheckbox = document.getElementById('editVerifiedCheckbox');
   const editHeroCheckbox = document.getElementById('editHeroCheckbox');
+  const editHeroOrderInput = document.getElementById('editHeroOrderInput');
   const saveEditBtn = document.getElementById('saveEditBtn');
   const editDetectSourceBtn = document.getElementById('editDetectSourceBtn');
   const editSourcePreview = document.getElementById('editSourcePreview');
@@ -60,13 +61,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const addTagsInput = document.getElementById('addTagsInput');
   const addChannelNameInput = document.getElementById('addChannelNameInput');
   const addHeroCheckbox = document.getElementById('addHeroCheckbox');
+  const addHeroOrderInput = document.getElementById('addHeroOrderInput');
   const submitAddBtn = document.getElementById('submitAddBtn');
 
-  // Add Modal — Nguồn video (tabs Link/Nhúng vs Tải file lên)
+  // Add Modal — Nguồn video (tabs Link/Nhúng vs Tải file lên vs Thêm hàng loạt)
   const sourceTabLink = document.getElementById('sourceTabLink');
   const sourceTabUpload = document.getElementById('sourceTabUpload');
+  const sourceTabBulk = document.getElementById('sourceTabBulk');
   const sourcePanelLink = document.getElementById('sourcePanelLink');
   const sourcePanelUpload = document.getElementById('sourcePanelUpload');
+  const sourcePanelBulk = document.getElementById('sourcePanelBulk');
   const addSourceInput = document.getElementById('addSourceInput');
   const detectSourceBtn = document.getElementById('detectSourceBtn');
   const sourcePreview = document.getElementById('sourcePreview');
@@ -75,8 +79,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const sourcePreviewNote = document.getElementById('sourcePreviewNote');
   const addVideoFileInput = document.getElementById('addVideoFileInput');
   const addVideoFileName = document.getElementById('addVideoFileName');
+  const bulkSourceInput = document.getElementById('bulkSourceInput');
+  const bulkResultsBox = document.getElementById('bulkResultsBox');
 
-  let addSourceMode = 'link'; // 'link' | 'upload'
+  // Các nhóm field chỉ áp dụng cho 1 video — ẩn đi khi ở chế độ Thêm hàng loạt
+  // vì mỗi dòng tự có tiêu đề/thumbnail riêng (hoặc tự suy ra), không có 1
+  // giá trị chung nào hợp lý cho cả lô.
+  const addTitleGroup = document.getElementById('addTitleGroup');
+  const addThumbnailGroup = document.getElementById('addThumbnailGroup');
+  const addDescGroup = document.getElementById('addDescGroup');
+  const addHeroGroup = document.getElementById('addHeroGroup');
+
+  let addSourceMode = 'link'; // 'link' | 'upload' | 'bulk'
   let detectedSource = null; // kết quả gần nhất từ /videos/detect-source
 
   // ==========================================================================
@@ -310,6 +324,7 @@ document.addEventListener('DOMContentLoaded', () => {
     editChannelNameInput.value = channel.name || 'GHUB X Creator';
     editVerifiedCheckbox.checked = channel.verified || false;
     editHeroCheckbox.checked = video.isHeroSpotlight || false;
+    editHeroOrderInput.value = video.heroOrder || 0;
     editSourcePreview.style.display = 'none';
 
     editModal.classList.add('active');
@@ -398,6 +413,7 @@ document.addEventListener('DOMContentLoaded', () => {
       views: Number(editViewsInput.value) || 0,
       likes: Number(editLikesInput.value) || 0,
       isHeroSpotlight: editHeroCheckbox.checked,
+      heroOrder: Number(editHeroOrderInput.value) || 0,
       channel: {
         name: editChannelNameInput.value.trim() || 'GHUB X Creator',
         avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
@@ -458,14 +474,31 @@ document.addEventListener('DOMContentLoaded', () => {
   function switchSourceMode(mode) {
     addSourceMode = mode;
     const isLink = mode === 'link';
+    const isUpload = mode === 'upload';
+    const isBulk = mode === 'bulk';
+
     sourceTabLink.classList.toggle('active', isLink);
-    sourceTabUpload.classList.toggle('active', !isLink);
+    sourceTabUpload.classList.toggle('active', isUpload);
+    sourceTabBulk.classList.toggle('active', isBulk);
     sourcePanelLink.style.display = isLink ? 'flex' : 'none';
-    sourcePanelUpload.style.display = isLink ? 'none' : 'flex';
+    sourcePanelUpload.style.display = isUpload ? 'flex' : 'none';
+    sourcePanelBulk.style.display = isBulk ? 'flex' : 'none';
+
+    // Chế độ Thêm hàng loạt: ẩn các field chỉ dùng cho 1 video (tiêu đề,
+    // thumbnail, mô tả, hero) — Thể loại/Kênh/Tags vẫn hiện vì áp dụng chung.
+    addTitleGroup.style.display = isBulk ? 'none' : '';
+    addThumbnailGroup.style.display = isBulk ? 'none' : '';
+    addDescGroup.style.display = isBulk ? 'none' : '';
+    addHeroGroup.style.display = isBulk ? 'none' : 'flex';
+
+    submitAddBtn.innerHTML = isBulk
+      ? '<i class="fa-solid fa-layer-group"></i> <span>Thêm Hàng Loạt</span>'
+      : '<i class="fa-solid fa-cloud-arrow-up"></i> <span>Tạo Video Mới</span>';
   }
 
   sourceTabLink.addEventListener('click', () => switchSourceMode('link'));
   sourceTabUpload.addEventListener('click', () => switchSourceMode('upload'));
+  sourceTabBulk.addEventListener('click', () => switchSourceMode('bulk'));
 
   addVideoFileInput.addEventListener('change', () => {
     const file = addVideoFileInput.files[0];
@@ -541,8 +574,12 @@ document.addEventListener('DOMContentLoaded', () => {
     addTagsInput.value = '';
     addChannelNameInput.value = '';
     addHeroCheckbox.checked = false;
+    addHeroOrderInput.value = '';
     addVideoFileInput.value = '';
     addVideoFileName.textContent = 'Chọn file video (MP4, WebM, MOV...)';
+    bulkSourceInput.value = '';
+    bulkResultsBox.style.display = 'none';
+    bulkResultsBox.innerHTML = '';
     resetSourcePreview();
     switchSourceMode('link');
   }
@@ -550,7 +587,84 @@ document.addEventListener('DOMContentLoaded', () => {
   closeAddModalBtn.addEventListener('click', closeAddModal);
   cancelAddBtn.addEventListener('click', closeAddModal);
 
+  // Hiển thị kết quả /videos/bulk (tổng số / thành công / thất bại + lý do
+  // từng dòng lỗi) ngay trong modal để admin biết dòng nào cần dán lại.
+  function renderBulkResults(json) {
+    const { summary, failedItems } = json;
+    bulkResultsBox.style.display = 'block';
+
+    let html = `<div class="bulk-results-summary">
+      Kết quả: <strong>${summary.succeeded}/${summary.total}</strong> video đã thêm thành công`
+      + (summary.failed > 0 ? `, <strong style="color:#ff6b6b;">${summary.failed}</strong> thất bại.` : '.')
+      + `</div>`;
+
+    if (failedItems && failedItems.length) {
+      html += '<ul class="bulk-results-errors">';
+      failedItems.forEach(item => {
+        const sourcePreviewText = (item.source || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        html += `<li><strong>Dòng ${item.line}:</strong> ${item.message} <span class="bulk-error-source">(${sourcePreviewText}${sourcePreviewText.length >= 160 ? '…' : ''})</span></li>`;
+      });
+      html += '</ul>';
+    }
+
+    bulkResultsBox.innerHTML = html;
+  }
+
   submitAddBtn.addEventListener('click', async () => {
+    if (addSourceMode === 'bulk') {
+      const sources = bulkSourceInput.value.trim();
+      if (!sources) {
+        showToast('Vui lòng dán danh sách link/mã nhúng, mỗi dòng 1 video.', 'error');
+        bulkSourceInput.focus();
+        return;
+      }
+
+      const bulkPayload = {
+        sources,
+        category: addCategorySelect.value,
+        tags: addTagsInput.value ? addTagsInput.value.split(',').map(t => t.trim()).filter(Boolean) : ['pro'],
+        channelName: addChannelNameInput.value.trim() || 'GHUB X Studio'
+      };
+
+      submitAddBtn.disabled = true;
+      submitAddBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang thêm hàng loạt...';
+      bulkResultsBox.style.display = 'none';
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/videos/bulk`, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(bulkPayload)
+        });
+        if (redirectIfSessionExpired(res)) return;
+
+        const json = await res.json().catch(() => null);
+
+        if (json?.summary) {
+          renderBulkResults(json);
+        }
+
+        if (res.ok && json?.success && Array.isArray(json.data) && json.data.length) {
+          allVideos.unshift(...json.data);
+          updateDashboardMetrics();
+          renderTable();
+          bulkSourceInput.value = '';
+          showToast(`🎉 Đã thêm ${json.summary.succeeded}/${json.summary.total} video thành công!`);
+        } else if (!json?.summary) {
+          showToast(json?.message || 'Có lỗi xảy ra khi thêm hàng loạt video.', 'error');
+        } else {
+          showToast('Không có video nào được thêm — xem chi tiết lỗi bên dưới.', 'error');
+        }
+      } catch (e) {
+        showToast('Không thể kết nối tới server để thêm hàng loạt video.', 'error');
+      } finally {
+        submitAddBtn.disabled = false;
+        submitAddBtn.innerHTML = '<i class="fa-solid fa-layer-group"></i> <span>Thêm Hàng Loạt</span>';
+      }
+      return;
+    }
+
     const title = addTitleInput.value.trim();
     if (!title) {
       showToast("Vui lòng điền tiêu đề cho video mới!", "error");
@@ -564,6 +678,7 @@ document.addEventListener('DOMContentLoaded', () => {
       description: addDescInput.value.trim() || 'Video chất lượng cao được thêm từ Studio Dashboard.',
       tags: addTagsInput.value ? addTagsInput.value.split(',').map(t => t.trim()).filter(Boolean) : ['pro'],
       isHeroSpotlight: addHeroCheckbox.checked,
+      heroOrder: Number(addHeroOrderInput.value) || 0,
       channelName: addChannelNameInput.value.trim() || 'GHUB X Studio'
     };
     const thumbnailOverride = addThumbnailInput.value.trim();
@@ -626,6 +741,185 @@ document.addEventListener('DOMContentLoaded', () => {
       submitAddBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> <span>Tạo Video Mới</span>';
     }
   });
+
+  // ==========================================================================
+  // Công cụ "Quét màn hình" (Snipping Tool) làm Thumbnail
+  //
+  // Ý tưởng: nếu 1 nguồn video không tự suy ra được thumbnail (vd mã nhúng từ
+  // mixdrop/streamtape...), thay vì luôn dùng ảnh placeholder tự sinh, admin
+  // có thể tự "quét" 1 khung hình ưng ý (từ chính video đang phát trên màn
+  // hình, hoặc từ trang gốc của nguồn nhúng) để làm thumbnail thật.
+  //
+  // Cách hoạt động: dùng getDisplayMedia() để xin quyền chia sẻ màn
+  // hình/cửa sổ/tab (trình duyệt tự hỏi quyền — không có cách nào chụp toàn
+  // màn hình mà không qua bước xin quyền này). Sau khi có luồng hình, hiển
+  // thị trực tiếp lên overlay toàn màn hình; admin kéo chuột chọn vùng cần
+  // lấy — NGAY khi thả chuột ra, vùng đó được cắt và tải lên server làm
+  // thumbnail, không cần thêm bước xác nhận nào khác.
+  // ==========================================================================
+  const snipOverlay = document.getElementById('snipOverlay');
+  const snipVideo = document.getElementById('snipVideo');
+  const snipCanvas = document.getElementById('snipCanvas');
+  const snipCancelBtn = document.getElementById('snipCancelBtn');
+  const addSnipThumbnailBtn = document.getElementById('addSnipThumbnailBtn');
+  const editSnipThumbnailBtn = document.getElementById('editSnipThumbnailBtn');
+
+  let snipStream = null;
+  let snipTargetInput = null; // input Thumbnail (Add hoặc Edit) sẽ nhận URL sau khi chụp
+  let snipDragStart = null;
+
+  function stopSnipStream() {
+    if (snipStream) {
+      snipStream.getTracks().forEach(t => t.stop());
+      snipStream = null;
+    }
+    snipOverlay.style.display = 'none';
+    snipVideo.srcObject = null;
+    snipDragStart = null;
+  }
+
+  function resizeSnipCanvas() {
+    const rect = snipVideo.getBoundingClientRect();
+    snipCanvas.width = rect.width;
+    snipCanvas.height = rect.height;
+    snipCanvas.style.left = `${rect.left}px`;
+    snipCanvas.style.top = `${rect.top}px`;
+  }
+
+  async function startSnipTool(targetInput) {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+      showToast('Trình duyệt này không hỗ trợ quét màn hình — hãy dùng Chrome/Edge bản mới trên máy tính.', 'error');
+      return;
+    }
+
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: 'always' }, audio: false });
+    } catch (e) {
+      return; // Người dùng bấm Hủy trên hộp thoại chọn màn hình, hoặc bị chặn quyền — không làm gì thêm.
+    }
+
+    snipStream = stream;
+    snipTargetInput = targetInput;
+    snipVideo.srcObject = stream;
+    snipOverlay.style.display = 'flex';
+
+    // Nếu người dùng tự dừng chia sẻ màn hình từ thanh thông báo của trình
+    // duyệt (thay vì nút Hủy trong overlay) thì cũng phải tự đóng overlay lại.
+    stream.getVideoTracks()[0].addEventListener('ended', stopSnipStream);
+
+    await new Promise(resolve => {
+      if (snipVideo.readyState >= 2) return resolve();
+      snipVideo.onloadedmetadata = () => resolve();
+    });
+    resizeSnipCanvas();
+  }
+
+  window.addEventListener('resize', () => {
+    if (snipOverlay.style.display === 'flex') resizeSnipCanvas();
+  });
+
+  function drawSnipSelection(x0, y0, x1, y1) {
+    const ctx = snipCanvas.getContext('2d');
+    ctx.clearRect(0, 0, snipCanvas.width, snipCanvas.height);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+    ctx.fillRect(0, 0, snipCanvas.width, snipCanvas.height);
+    const x = Math.min(x0, x1);
+    const y = Math.min(y0, y1);
+    const w = Math.abs(x1 - x0);
+    const h = Math.abs(y1 - y0);
+    ctx.clearRect(x, y, w, h);
+    ctx.strokeStyle = '#6366f1';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, y, w, h);
+  }
+
+  // Ảnh hiển thị trên <video> có thể bị co giãn khác tỉ lệ thật của luồng
+  // hình (videoWidth/videoHeight) — phải quy đổi toạ độ vùng chọn theo đúng
+  // tỉ lệ thật trước khi crop, nếu không ảnh cắt ra sẽ bị lệch vùng đã chọn.
+  async function captureSnipSelection(selX, selY, selW, selH) {
+    const displayRect = snipVideo.getBoundingClientRect();
+    const scaleX = snipVideo.videoWidth / displayRect.width;
+    const scaleY = snipVideo.videoHeight / displayRect.height;
+
+    const cropCanvas = document.createElement('canvas');
+    cropCanvas.width = Math.max(1, Math.round(selW * scaleX));
+    cropCanvas.height = Math.max(1, Math.round(selH * scaleY));
+    const ctx = cropCanvas.getContext('2d');
+    ctx.drawImage(
+      snipVideo,
+      selX * scaleX, selY * scaleY, selW * scaleX, selH * scaleY,
+      0, 0, cropCanvas.width, cropCanvas.height
+    );
+
+    const blob = await new Promise(resolve => cropCanvas.toBlob(resolve, 'image/png'));
+    const targetInput = snipTargetInput;
+    stopSnipStream();
+
+    if (!blob) {
+      showToast('Không chụp được ảnh, thử lại nhé.', 'error');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('thumbnail', blob, 'snip.png');
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/videos/thumbnail-snip`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        body: formData
+      });
+      if (redirectIfSessionExpired(res)) return;
+      const json = await res.json().catch(() => null);
+      if (res.ok && json?.success && targetInput) {
+        targetInput.value = json.url;
+        showToast('Đã lưu ảnh quét màn hình làm thumbnail!', 'success');
+      } else {
+        showToast(json?.message || 'Không lưu được ảnh vừa quét.', 'error');
+      }
+    } catch (e) {
+      showToast('Không thể kết nối tới server để lưu ảnh vừa quét.', 'error');
+    }
+  }
+
+  snipCanvas.addEventListener('mousedown', (e) => {
+    const rect = snipCanvas.getBoundingClientRect();
+    snipDragStart = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  });
+
+  snipCanvas.addEventListener('mousemove', (e) => {
+    if (!snipDragStart) return;
+    const rect = snipCanvas.getBoundingClientRect();
+    drawSnipSelection(snipDragStart.x, snipDragStart.y, e.clientX - rect.left, e.clientY - rect.top);
+  });
+
+  snipCanvas.addEventListener('mouseup', (e) => {
+    if (!snipDragStart) return;
+    const rect = snipCanvas.getBoundingClientRect();
+    const endX = e.clientX - rect.left;
+    const endY = e.clientY - rect.top;
+    const { x: startX, y: startY } = snipDragStart;
+    snipDragStart = null;
+
+    const selX = Math.min(startX, endX);
+    const selY = Math.min(startY, endY);
+    const selW = Math.abs(endX - startX);
+    const selH = Math.abs(endY - startY);
+
+    if (selW < 20 || selH < 20) {
+      // Vùng chọn quá nhỏ (nhiều khả năng chỉ là 1 cú click nhầm) — bỏ qua, không lưu.
+      const ctx = snipCanvas.getContext('2d');
+      ctx.clearRect(0, 0, snipCanvas.width, snipCanvas.height);
+      return;
+    }
+
+    captureSnipSelection(selX, selY, selW, selH);
+  });
+
+  snipCancelBtn.addEventListener('click', stopSnipStream);
+  if (addSnipThumbnailBtn) addSnipThumbnailBtn.addEventListener('click', () => startSnipTool(addThumbnailInput));
+  if (editSnipThumbnailBtn) editSnipThumbnailBtn.addEventListener('click', () => startSnipTool(editThumbnailInput));
 
   // ==========================================================================
   // Action: Delete Video

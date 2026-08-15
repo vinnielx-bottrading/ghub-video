@@ -1,13 +1,14 @@
 const Video = require('../models/Video');
 const fs = require('fs');
 const path = require('path');
-const { resolveVideoSource, detectSourceType } = require('../utils/videoSource');
+const { resolveVideoSource, detectSourceType, fetchTitleForResolved } = require('../utils/videoSource');
 const { extractThumbnailFromVideo, extractPreviewGif } = require('../utils/thumbnailExtractor');
 const { generatePlaceholderThumbnail } = require('../utils/placeholderThumbnail');
 
-const TRENDING_MIN_VIEWS = 300000;
 const THUMBNAILS_DIR = path.join(__dirname, '..', 'uploads', 'thumbnails');
 const DEFAULT_THUMBNAIL = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=85';
+const MAX_BULK_ITEMS = 50;
+const BULK_CONCURRENCY = 4;
 
 // POST /api/videos/detect-source — admin dán link/mã nhúng, trả về preview
 // (platform, embedUrl, thumbnail tự suy nếu có) TRƯỚC khi tạo video thật.
@@ -25,6 +26,23 @@ exports.detectVideoSource = async (req, res) => {
   }
 };
 
+// POST /api/videos/thumbnail-snip — dùng cho công cụ "quét màn hình" (snipping
+// tool) trong Admin: nhận 1 ảnh đã được crop sẵn ngay trên trình duyệt (từ
+// vùng người dùng kéo chọn khi quét màn hình/video), lưu vào uploads/thumbnails
+// và trả về URL để gán thẳng vào ô Thumbnail.
+exports.uploadThumbnailSnip = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Không nhận được ảnh đã chụp.' });
+    }
+    const hostUrl = `${req.protocol}://${req.get('host')}`;
+    const url = `${hostUrl}/uploads/thumbnails/${req.file.filename}`;
+    res.json({ success: true, url });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // GET /api/videos
 exports.getVideos = async (req, res) => {
   try {
@@ -32,8 +50,7 @@ exports.getVideos = async (req, res) => {
     const query = {};
 
     if (category && category !== 'Tất cả') {
-      if (category === 'Thịnh hành 🔥') query.views = { $gte: TRENDING_MIN_VIEWS };
-      else query.category = category;
+      query.category = category;
     }
 
     if (search) {
@@ -57,12 +74,19 @@ exports.getVideos = async (req, res) => {
   }
 };
 
-// GET /api/videos/hero
+// GET /api/videos/hero — trả về DANH SÁCH video cho Hero Banner dạng
+// slideshow (không còn giới hạn chỉ 1 video). Admin có thể đánh dấu nhiều
+// video là Hero Spotlight; heroOrder (số nhỏ hơn hiện trước) do admin tự đặt
+// để quyết định thứ tự trình chiếu. Nếu chưa video nào được đánh dấu, fallback
+// về 1 video xem nhiều nhất (nếu có) để trang chủ không bị trống Hero Banner.
 exports.getHeroVideo = async (req, res) => {
   try {
-    const hero = await Video.findOne({ isHeroSpotlight: true }).sort({ updatedAt: -1 })
-      || await Video.findOne().sort({ views: -1 });
-    res.json({ success: true, data: hero });
+    const heroVideos = await Video.find({ isHeroSpotlight: true }).sort({ heroOrder: 1, createdAt: 1 });
+    if (heroVideos.length > 0) {
+      return res.json({ success: true, data: heroVideos });
+    }
+    const fallback = await Video.findOne().sort({ views: -1 });
+    res.json({ success: true, data: fallback ? [fallback] : [] });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -182,8 +206,11 @@ exports.createVideo = async (req, res) => {
       ? (typeof req.body.tags === 'string' ? req.body.tags.split(',') : req.body.tags).map(t => String(t).trim()).filter(Boolean)
       : [];
 
+    // Hero Banner giờ là slideshow — cho phép NHIỀU video cùng isHeroSpotlight
+    // = true (không còn tự động hủy hero của các video khác như trước).
+    // heroOrder do admin tự nhập để quyết định thứ tự trình chiếu.
     const makeHero = req.body.isHeroSpotlight === 'true' || req.body.isHeroSpotlight === true;
-    if (makeHero) await Video.updateMany({}, { $set: { isHeroSpotlight: false } });
+    const heroOrder = Number.isFinite(Number(req.body.heroOrder)) ? Number(req.body.heroOrder) : 0;
 
     const newVideo = await Video.create({
       title: req.body.title.trim(),
@@ -199,6 +226,7 @@ exports.createVideo = async (req, res) => {
       quality: req.body.quality || '4K 60fps',
       tags: tagsArray,
       isHeroSpotlight: makeHero,
+      heroOrder,
       channel: {
         name: req.body.channelName || req.body.channel?.name || 'Kênh Của Tôi (Pro)',
         avatar: req.body.channelAvatar || req.body.channel?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
@@ -212,6 +240,167 @@ exports.createVideo = async (req, res) => {
     res.status(400).json({ success: false, message: error.message });
   }
 };
+
+// POST /api/videos/bulk — Thêm hàng loạt video: admin dán nhiều link/mã nhúng
+// vào 1 ô, mỗi dòng được hiểu là 1 video riêng. Hỗ trợ đặt tiêu đề riêng cho
+// từng dòng bằng cú pháp "Tiêu đề | link-hoặc-mã-nhúng"; nếu không có, tiêu đề
+// được tự suy: có sẵn từ oEmbed (Vimeo/TikTok), gọi thêm 1 lần oEmbed cho
+// YouTube/Dailymotion, hoặc dùng tên mặc định "Video nhập hàng loạt #N".
+// Thể loại/kênh/tags dùng chung cho cả lô. Xử lý song song có giới hạn
+// (BULK_CONCURRENCY) để cân bằng tốc độ và tránh quá tải/time-out server.
+exports.bulkCreateVideos = async (req, res) => {
+  try {
+    const hostUrl = `${req.protocol}://${req.get('host')}`;
+    const rawSources = req.body.sources;
+    if (!rawSources || !rawSources.trim()) {
+      return res.status(400).json({ success: false, message: 'Vui lòng dán danh sách link/mã nhúng, mỗi dòng 1 video.' });
+    }
+
+    const lines = splitBulkSources(rawSources);
+    if (!lines.length) {
+      return res.status(400).json({ success: false, message: 'Không tìm thấy dòng nào hợp lệ.' });
+    }
+    if (lines.length > MAX_BULK_ITEMS) {
+      return res.status(400).json({
+        success: false,
+        message: `Chỉ hỗ trợ tối đa ${MAX_BULK_ITEMS} video mỗi lần. Bạn đang dán ${lines.length} dòng — vui lòng chia nhỏ ra.`
+      });
+    }
+
+    const tagsArray = req.body.tags
+      ? (typeof req.body.tags === 'string' ? req.body.tags.split(',') : req.body.tags).map(t => String(t).trim()).filter(Boolean)
+      : [];
+
+    const sharedFields = {
+      category: req.body.category || 'Lập trình',
+      quality: req.body.quality || '4K 60fps',
+      tags: tagsArray,
+      channel: {
+        name: req.body.channelName || 'Kênh Của Tôi (Pro)',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+        subscribers: '1.5K người theo dõi',
+        verified: false
+      }
+    };
+
+    const results = new Array(lines.length).fill(null);
+    const failedItems = [];
+
+    let cursor = 0;
+    async function worker() {
+      while (cursor < lines.length) {
+        const index = cursor++;
+        try {
+          results[index] = await processBulkLine(lines[index], index, sharedFields, hostUrl);
+        } catch (error) {
+          failedItems.push({ line: index + 1, source: lines[index].slice(0, 160), message: error.message || 'Lỗi không xác định' });
+        }
+      }
+    }
+
+    const workerCount = Math.min(BULK_CONCURRENCY, lines.length);
+    await Promise.all(Array.from({ length: workerCount }, () => worker()));
+
+    const created = results.filter(Boolean);
+    failedItems.sort((a, b) => a.line - b.line);
+
+    res.status(created.length ? 201 : 400).json({
+      success: created.length > 0,
+      summary: { total: lines.length, succeeded: created.length, failed: failedItems.length },
+      data: created,
+      failedItems
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Tách nội dung nhiều dòng thành từng mục "1 video" — thông thường mỗi dòng
+// là 1 video, NHƯNG mã nhúng <iframe> khi copy từ trình duyệt thường tự xuống
+// dòng giữa các thuộc tính (src, frameborder, allowfullscreen...). Nếu tách
+// thô theo dòng sẽ cắt vụn 1 mã nhúng thành nhiều "video" rác. Cách xử lý:
+// tìm & "khoá" toàn bộ khối <iframe ...>...</iframe> (hoặc chỉ thẻ mở nếu
+// không có thẻ đóng) lại thành 1 token duy nhất trước khi tách dòng, sau đó
+// trả token về nguyên văn — nhờ vậy khối iframe nhiều dòng luôn nằm gọn
+// trong đúng 1 mục, dù bên trong nó có bao nhiêu dấu xuống dòng.
+function splitBulkSources(rawSources) {
+  const iframeBlocks = [];
+  const withPlaceholders = rawSources.replace(/<iframe[^>]*>(?:[\s\S]*?<\/iframe\s*>)?/gi, (match) => {
+    const token = 'IFRAME_BULK_TOKEN_' + iframeBlocks.length + '_END';
+    iframeBlocks.push(match);
+    return token;
+  });
+
+  return withPlaceholders
+    .split('\n')
+    .map(l => l.trim())
+    .filter(Boolean)
+    .map(line => line.replace(/IFRAME_BULK_TOKEN_(\d+)_END/g, (_, i) => iframeBlocks[Number(i)]));
+}
+
+// Hỗ trợ cú pháp tuỳ chọn "Tiêu đề | link-hoặc-mã-nhúng" trên mỗi dòng. Chỉ
+// tách khi vế phải rõ ràng là 1 nguồn video (link http(s) hoặc mã nhúng
+// iframe) VÀ vế trái không tự nó là 1 nguồn — tránh hiểu nhầm dấu "|" nằm
+// trong query string của URL (vd ?a=1|2) thành dấu phân tách tiêu đề.
+function parseTitleAndSource(line) {
+  const idx = line.indexOf('|');
+  if (idx === -1) return { title: null, source: line.trim() };
+
+  const left = line.slice(0, idx).trim();
+  const right = line.slice(idx + 1).trim();
+  const looksLikeSource = (s) => /^https?:\/\//i.test(s) || /<iframe/i.test(s);
+
+  if (left && looksLikeSource(right) && !looksLikeSource(left)) {
+    return { title: left, source: right };
+  }
+  return { title: null, source: line.trim() };
+}
+
+// Xử lý 1 dòng trong lô Thêm hàng loạt: phân giải nguồn, suy tiêu đề & ảnh
+// bìa theo đúng thứ tự ưu tiên đã dùng cho luồng Thêm 1 video, rồi tạo video.
+// Ném lỗi (throw) khi dòng này thất bại — bulkCreateVideos sẽ gom vào
+// failedItems thay vì làm hỏng cả lô.
+async function processBulkLine(rawLine, index, sharedFields, hostUrl) {
+  const { title: customTitle, source } = parseTitleAndSource(rawLine);
+  if (!source) throw new Error('Dòng trống hoặc không có nguồn video.');
+
+  const resolved = await resolveVideoSource(source);
+  if (!resolved.success) throw new Error(resolved.message);
+
+  let title = customTitle || resolved.title;
+  if (!title) title = await fetchTitleForResolved(resolved);
+  if (!title) title = `Video nhập hàng loạt #${index + 1}`;
+
+  let thumbnail = resolved.thumbnail || '';
+  if (resolved.sourceType === 'direct' && !thumbnail) {
+    const autoFile = await extractThumbnailFromVideo(resolved.videoUrl, THUMBNAILS_DIR);
+    if (autoFile) thumbnail = `${hostUrl}/uploads/thumbnails/${autoFile}`;
+  }
+  if (!thumbnail) {
+    try {
+      thumbnail = generatePlaceholderThumbnail(title);
+    } catch (error) {
+      thumbnail = DEFAULT_THUMBNAIL;
+    }
+  }
+
+  return Video.create({
+    title,
+    description: '',
+    videoUrl: resolved.videoUrl,
+    sourceType: resolved.sourceType,
+    platform: resolved.platform,
+    embedUrl: resolved.embedUrl || '',
+    thumbnail,
+    previewGif: '',
+    durationFormatted: '05:30',
+    category: sharedFields.category,
+    quality: sharedFields.quality,
+    tags: sharedFields.tags,
+    isHeroSpotlight: false,
+    channel: sharedFields.channel
+  });
+}
 
 // PUT /api/videos/:id
 exports.updateVideo = async (req, res) => {
@@ -259,9 +448,13 @@ exports.updateVideo = async (req, res) => {
       }
     }
 
+    // Hero Banner là slideshow — nhiều video có thể cùng lúc là hero, nên
+    // KHÔNG còn tự động hủy hero của các video khác khi bật hero cho 1 video.
     if (update.isHeroSpotlight === true || update.isHeroSpotlight === 'true') {
-      await Video.updateMany({ _id: { $ne: req.params.id } }, { $set: { isHeroSpotlight: false } });
       update.isHeroSpotlight = true;
+    }
+    if (update.heroOrder !== undefined) {
+      update.heroOrder = Number.isFinite(Number(update.heroOrder)) ? Number(update.heroOrder) : 0;
     }
 
     const video = await Video.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true });
@@ -344,7 +537,7 @@ exports.addComment = async (req, res) => {
 exports.getCategories = async (req, res) => {
   try {
     const categories = await Video.distinct('category');
-    res.json({ success: true, data: ['Tất cả', 'Thịnh hành 🔥', ...categories] });
+    res.json({ success: true, data: ['Tất cả', ...categories] });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

@@ -790,6 +790,88 @@ body {
   margin: 0;
 }
 
+/* Add Video: Thêm hàng loạt — kết quả sau khi submit /videos/bulk */
+.bulk-results {
+  padding: 12px;
+  background: var(--bg-pill);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  font-size: 0.82rem;
+}
+.bulk-results-summary {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.bulk-results-errors {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+.bulk-results-errors li {
+  color: #ff9b9b;
+  line-height: 1.4;
+}
+.bulk-error-source {
+  display: block;
+  color: var(--text-tertiary);
+  font-size: 0.74rem;
+  word-break: break-all;
+}
+
+/* ==========================================================================
+   Công cụ "Quét màn hình" (Snipping Tool) làm Thumbnail
+   ========================================================================== */
+.snip-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.snip-overlay video {
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+}
+
+.snip-overlay canvas {
+  position: fixed;
+  cursor: crosshair;
+}
+
+.snip-toolbar {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3001;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 18px;
+  background: rgba(15, 17, 23, 0.9);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-pill);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.snip-hint {
+  font-size: 0.84rem;
+  color: #fff;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 /* Responsive */
 @media (max-width: 900px) {
   .admin-sidebar {

@@ -12,7 +12,9 @@ const {
   likeVideo,
   addComment,
   getCategories,
-  detectVideoSource
+  detectVideoSource,
+  bulkCreateVideos,
+  uploadThumbnailSnip
 } = require('../controllers/videoController');
 
 // Routes danh mục & Hero
@@ -22,6 +24,14 @@ router.get('/hero', getHeroVideo);
 // Nhận diện & xem trước nguồn video (link/mã nhúng) trước khi tạo — chỉ Admin.
 // Đặt trước router.route('/:id') để không bị hiểu nhầm là 1 ID.
 router.post('/detect-source', requireAdminApi, detectVideoSource);
+
+// Thêm hàng loạt video: mỗi dòng trong ô "sources" là 1 video — chỉ Admin.
+// Đặt trước router.route('/:id') để không bị hiểu nhầm "bulk" là 1 ID.
+router.post('/bulk', requireAdminApi, bulkCreateVideos);
+
+// Công cụ "quét màn hình" (snipping tool) trong Admin: nhận 1 ảnh đã crop sẵn
+// ở trình duyệt, lưu lại và trả về URL để dùng làm thumbnail — chỉ Admin.
+router.post('/thumbnail-snip', requireAdminApi, upload.single('thumbnail'), uploadThumbnailSnip);
 
 // Routes CRUD video — đọc (GET) công khai cho người xem; ghi (POST/PUT/DELETE)
 // chỉ dành cho Admin đã đăng nhập.

@@ -56,21 +56,15 @@
   <!-- App Structure -->
   <div class="app-container">
     
-    <!-- Minimalist Sidebar -->
+    <!-- Minimalist Sidebar — chỉ còn Trang chủ + Thể loại theo yêu cầu, bỏ
+         hết các mục trang trí không hoạt động (Thịnh hành, Kênh theo dõi,
+         Thư viện, Kênh đề xuất) để menu gọn và không gây hiểu nhầm. -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-group">
         <div class="sidebar-header-label">Khám phá</div>
         <a href="#" class="nav-item active" id="navHomeBtn">
           <i class="fa-solid fa-compass"></i>
           <span class="nav-text">Trang chủ</span>
-        </a>
-        <a href="#" class="nav-item" id="navTrendingBtn">
-          <i class="fa-solid fa-fire-flame-curved"></i>
-          <span class="nav-text">Thịnh hành</span>
-        </a>
-        <a href="#" class="nav-item">
-          <i class="fa-solid fa-layer-group"></i>
-          <span class="nav-text">Kênh theo dõi</span>
         </a>
       </div>
 
@@ -82,57 +76,21 @@
           <!-- Injected via js/app.js -->
         </div>
       </div>
-
-      <div class="sidebar-group">
-        <div class="sidebar-header-label">Thư viện của bạn</div>
-        <a href="#" class="nav-item">
-          <i class="fa-solid fa-clock-rotate-left"></i>
-          <span class="nav-text">Lịch sử xem</span>
-        </a>
-        <a href="#" class="nav-item">
-          <i class="fa-solid fa-bookmark"></i>
-          <span class="nav-text">Đã lưu & Xem sau</span>
-        </a>
-        <a href="#" class="nav-item">
-          <i class="fa-solid fa-heart"></i>
-          <span class="nav-text">Video yêu thích</span>
-        </a>
-      </div>
-
-      <div class="sidebar-group">
-        <div class="sidebar-header-label">Kênh đề xuất</div>
-        <a href="#" class="channel-item">
-          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="TechLead">
-          <span>TechLead Vietnam</span>
-        </a>
-        <a href="#" class="channel-item">
-          <img src="https://images.unsplash.com/photo-1518020382113-a7e8fc38eac9?auto=format&fit=crop&w=100&q=80" alt="Earth Cinema">
-          <span>Earth Cinema</span>
-        </a>
-        <a href="#" class="channel-item">
-          <img src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=100&q=80" alt="Neo Tokyo">
-          <span>Neo Tokyo Radio</span>
-        </a>
-      </div>
     </aside>
 
     <!-- Main Content Flow -->
     <main class="main-content">
       
-      <!-- Cinematic Hero Spotlight (Banner nổi bật) -->
+      <!-- Cinematic Hero Spotlight (Banner nổi bật) — dạng slideshow, xoay
+           vòng qua tất cả video admin đánh dấu "Hero Spotlight" trong trang
+           quản trị. Nội dung được thu gọn và không còn lớp phủ tối nặng như
+           trước để nhìn rõ ảnh nền hơn. -->
       <section class="hero-spotlight" id="heroSpotlight">
         <div class="hero-backdrop" id="heroBackdrop"></div>
         <div class="hero-overlay-gradient"></div>
         <div class="hero-content">
-          <div class="hero-badge-row" id="heroBadges">
-            <span class="badge-tag highlight">🔥 THỊNH HÀNH #1</span>
-            <span class="badge-tag">4K ULTRA HD</span>
-            <span class="badge-tag">60 FPS</span>
-          </div>
-          <h1 class="hero-title" id="heroTitle">Vũ Trụ Vô Tận: Hành Trình Khám Phá Hố Đen</h1>
-          <p class="hero-description" id="heroDesc">
-            Trải nghiệm thước phim điện ảnh 4K đỉnh cao ghi lại những bí ẩn sâu thẳm nhất của vũ trụ và kỳ dị không thời gian.
-          </p>
+          <h1 class="hero-title" id="heroTitle"></h1>
+          <p class="hero-description" id="heroDesc"></p>
           <div class="hero-actions">
             <button class="btn-hero-play" id="heroPlayBtn">
               <i class="fa-solid fa-play"></i>
@@ -144,6 +102,11 @@
             </button>
           </div>
         </div>
+        <div class="hero-slide-nav" id="heroSlideNav" style="display:none;">
+          <button class="hero-nav-arrow hero-nav-prev" id="heroPrevBtn" title="Video trước"><i class="fa-solid fa-chevron-left"></i></button>
+          <button class="hero-nav-arrow hero-nav-next" id="heroNextBtn" title="Video tiếp theo"><i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+        <div class="hero-dots" id="heroDots"></div>
       </section>
 
       <!-- Category Filter Pills -->

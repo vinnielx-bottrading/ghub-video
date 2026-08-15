@@ -193,6 +193,9 @@
         <div class="form-group-admin">
           <label>Đường dẫn Thumbnail (Ảnh bìa)</label>
           <input type="text" id="editThumbnailInput" class="form-input-admin" placeholder="https://...">
+          <button type="button" class="btn-detect-source" id="editSnipThumbnailBtn" style="margin-top: 8px;">
+            <i class="fa-solid fa-crop-simple"></i> Quét màn hình lấy Thumbnail
+          </button>
         </div>
 
         <div class="form-group-admin">
@@ -231,15 +234,19 @@
           <input type="text" id="editTagsInput" class="form-input-admin" placeholder="4k, coding, podcast...">
         </div>
 
-        <div style="display: flex; gap: 24px; margin-top: 10px;">
+        <div style="display: flex; gap: 24px; margin-top: 10px; flex-wrap: wrap; align-items: center;">
           <label style="display: flex; align-items: center; gap: 8px; font-size: 0.88rem; cursor: pointer; color: #fff;">
             <input type="checkbox" id="editVerifiedCheckbox" style="accent-color: var(--accent-primary); width: 16px; height: 16px;">
             <span>Kênh có tích xanh (Verified)</span>
           </label>
           <label style="display: flex; align-items: center; gap: 8px; font-size: 0.88rem; cursor: pointer; color: #fff;">
             <input type="checkbox" id="editHeroCheckbox" style="accent-color: var(--accent-primary); width: 16px; height: 16px;">
-            <span>Đặt làm Hero Banner chính</span>
+            <span>Đặt làm Hero Banner (Slideshow trang chủ)</span>
           </label>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <label style="font-size: 0.82rem; color: var(--text-tertiary); white-space:nowrap;" for="editHeroOrderInput">Thứ tự (số nhỏ hiện trước)</label>
+            <input type="number" id="editHeroOrderInput" class="form-input-admin" placeholder="0" style="width: 80px; padding: 6px 10px;">
+          </div>
         </div>
       </div>
 
@@ -265,7 +272,7 @@
       </div>
 
       <div class="admin-modal-body">
-        <div class="form-group-admin">
+        <div class="form-group-admin" id="addTitleGroup">
           <label>Tiêu đề video *</label>
           <input type="text" id="addTitleInput" class="form-input-admin" placeholder="Nhập tiêu đề điện ảnh hấp dẫn...">
         </div>
@@ -285,7 +292,7 @@
         <datalist id="categoryOptionsList"></datalist>
         <datalist id="channelOptionsList"></datalist>
 
-        <!-- Nguồn video: Link/Nhúng hoặc Tải file lên -->
+        <!-- Nguồn video: Link/Nhúng, Tải file lên, hoặc Thêm hàng loạt -->
         <div class="form-group-admin">
           <label>Nguồn video *</label>
           <div class="source-tabs">
@@ -294,6 +301,9 @@
             </button>
             <button type="button" class="source-tab-btn" id="sourceTabUpload" data-mode="upload">
               <i class="fa-solid fa-upload"></i> Tải file lên
+            </button>
+            <button type="button" class="source-tab-btn" id="sourceTabBulk" data-mode="bulk">
+              <i class="fa-solid fa-layer-group"></i> Thêm hàng loạt
             </button>
           </div>
 
@@ -321,14 +331,24 @@
             <input type="file" id="addVideoFileInput" accept="video/*" style="display:none;">
             <p class="source-hint">Nếu không nhập/chọn ảnh bìa bên dưới, hệ thống sẽ tự động trích 1 khung hình từ video làm thumbnail.</p>
           </div>
+
+          <!-- Chế độ: Thêm hàng loạt — mỗi dòng là 1 video (link hoặc mã nhúng) -->
+          <div id="sourcePanelBulk" class="source-panel" style="display:none;">
+            <textarea id="bulkSourceInput" class="form-textarea-admin" rows="8" placeholder="Mỗi dòng là 1 video. Dán link YouTube/Vimeo/link chia sẻ/link trực tiếp hoặc mã nhúng &lt;iframe&gt; — có thể xuống dòng giữa các thuộc tính của iframe, hệ thống vẫn hiểu đúng là 1 video.&#10;&#10;Muốn tự đặt tiêu đề riêng cho từng dòng, dùng cú pháp:&#10;Tên phim | https://...&#10;&#10;Ví dụ:&#10;https://www.youtube.com/watch?v=abcdef12345&#10;Tập 2 | &lt;iframe src=&quot;https://mixdrop.co/e/xxxxx&quot;&gt;&lt;/iframe&gt;"></textarea>
+            <p class="source-hint">Thể loại / Tên kênh / Tags ở trên sẽ áp dụng chung cho tất cả video trong lô. Tiêu đề: dùng cú pháp "Tên | nguồn" cho từng dòng, hoặc để trống — hệ thống sẽ tự lấy tiêu đề thật (YouTube/Vimeo/Dailymotion/TikTok) hoặc đặt tên mặc định. Tối đa 50 video mỗi lần.</p>
+            <div class="bulk-results" id="bulkResultsBox" style="display:none;"></div>
+          </div>
         </div>
 
-        <div class="form-group-admin">
+        <div class="form-group-admin" id="addThumbnailGroup">
           <label>Đường dẫn Thumbnail (Ảnh bìa) — để trống để tự động suy ra</label>
           <input type="text" id="addThumbnailInput" class="form-input-admin" placeholder="https://images.unsplash.com/photo-... (tùy chọn)">
+          <button type="button" class="btn-detect-source" id="addSnipThumbnailBtn" style="margin-top: 8px;">
+            <i class="fa-solid fa-crop-simple"></i> Quét màn hình lấy Thumbnail
+          </button>
         </div>
 
-        <div class="form-group-admin">
+        <div class="form-group-admin" id="addDescGroup">
           <label>Mô tả video</label>
           <textarea id="addDescInput" class="form-textarea-admin" placeholder="Giới thiệu nội dung video..."></textarea>
         </div>
@@ -338,10 +358,16 @@
           <input type="text" id="addTagsInput" class="form-input-admin" placeholder="ví dụ: 4k, tech, tutorial...">
         </div>
 
-        <label style="display: flex; align-items: center; gap: 8px; font-size: 0.88rem; cursor: pointer; color: #fff;">
-          <input type="checkbox" id="addHeroCheckbox" style="accent-color: var(--accent-primary); width: 16px; height: 16px;">
-          <span>Đặt làm Hero Spotlight hiển thị nổi bật trên đầu trang chủ</span>
-        </label>
+        <div id="addHeroGroup" style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 0.88rem; cursor: pointer; color: #fff;">
+            <input type="checkbox" id="addHeroCheckbox" style="accent-color: var(--accent-primary); width: 16px; height: 16px;">
+            <span>Đặt làm Hero Banner (Slideshow trang chủ)</span>
+          </label>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <label style="font-size: 0.82rem; color: var(--text-tertiary); white-space:nowrap;" for="addHeroOrderInput">Thứ tự (số nhỏ hiện trước)</label>
+            <input type="number" id="addHeroOrderInput" class="form-input-admin" placeholder="0" style="width: 80px; padding: 6px 10px;">
+          </div>
+        </div>
       </div>
 
       <div class="admin-modal-foot">
@@ -356,6 +382,20 @@
 
   <!-- Toast Notification Container -->
   <div class="admin-toast-container" id="adminToastContainer"></div>
+
+  <!-- Công cụ "Quét màn hình" (Snipping Tool) làm Thumbnail: bấm nút ở ô
+       Thumbnail (Add/Edit) → trình duyệt hỏi chọn màn hình/cửa sổ/tab cần
+       quét → kéo chuột chọn vùng cần chụp trên bản xem trực tiếp → thả chuột
+       ra là ảnh được cắt và lưu làm thumbnail ngay lập tức. Dùng chung 1 overlay
+       cho cả 2 modal Add/Edit (chỉ 1 trong 2 mở tại 1 thời điểm). -->
+  <div class="snip-overlay" id="snipOverlay" style="display:none;">
+    <video id="snipVideo" autoplay muted playsinline></video>
+    <canvas id="snipCanvas"></canvas>
+    <div class="snip-toolbar">
+      <span class="snip-hint"><i class="fa-solid fa-crop-simple"></i> Kéo chuột để chọn vùng cần chụp — thả chuột ra để lưu ngay làm thumbnail.</span>
+      <button type="button" class="btn-cancel-admin" id="snipCancelBtn">Hủy quét màn hình</button>
+    </div>
+  </div>
 
   <!-- Scripts -->
   <script src="js/data.js"></script>
