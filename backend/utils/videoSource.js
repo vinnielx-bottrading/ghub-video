@@ -30,9 +30,23 @@ function extractVimeoId(input) {
   return match ? match[1] : null;
 }
 
+// Trích src từ mã nhúng <iframe>. Chấp nhận cả trường hợp src không có
+// ngoặc kép (hiếm nhưng vẫn hợp lệ HTML) và link dạng protocol-relative
+// (//host/...) hay gặp ở các trang nhúng như mixdrop/streamtape/doodstream...
+// Chỉ chấp nhận kết quả là link http/https để tránh chèn src kiểu
+// "javascript:" hoặc "data:" độc hại qua ô dán mã nhúng.
 function extractIframeSrc(html) {
-  const match = html.match(/<iframe[^>]+src=["']([^"']+)["']/i);
-  return match ? match[1] : null;
+  let match = html.match(/<iframe[^>]+src\s*=\s*["']([^"']+)["']/i);
+  if (!match) {
+    match = html.match(/<iframe[^>]+src\s*=\s*([^\s"'>]+)/i);
+  }
+  if (!match) return null;
+
+  let src = match[1].trim();
+  if (src.startsWith('//')) src = 'https:' + src; // chuẩn hoá link protocol-relative
+
+  if (!/^https:\/\//i.test(src) && !/^http:\/\//i.test(src)) return null;
+  return src;
 }
 
 async function fetchVimeoThumbnail(vimeoId) {

@@ -181,14 +181,12 @@
 
         <div class="form-grid-2col">
           <div class="form-group-admin">
-            <label>Thể loại danh mục</label>
-            <select id="editCategorySelect" class="form-select-admin">
-              <!-- Injected -->
-            </select>
+            <label>Thể loại danh mục (gõ để tạo mới hoặc chọn gợi ý)</label>
+            <input type="text" id="editCategorySelect" class="form-input-admin" list="categoryOptionsList" placeholder="Nhập thể loại...">
           </div>
           <div class="form-group-admin">
             <label>Tên Kênh sáng tạo</label>
-            <input type="text" id="editChannelNameInput" class="form-input-admin" placeholder="Tên kênh...">
+            <input type="text" id="editChannelNameInput" class="form-input-admin" list="channelOptionsList" placeholder="Tên kênh...">
           </div>
         </div>
 
@@ -274,16 +272,18 @@
 
         <div class="form-grid-2col">
           <div class="form-group-admin">
-            <label>Thể loại</label>
-            <select id="addCategorySelect" class="form-select-admin">
-              <!-- Injected -->
-            </select>
+            <label>Thể loại (gõ để tạo mới hoặc chọn gợi ý)</label>
+            <input type="text" id="addCategorySelect" class="form-input-admin" list="categoryOptionsList" placeholder="Nhập thể loại mới hoặc chọn...">
           </div>
           <div class="form-group-admin">
             <label>Tên Kênh</label>
-            <input type="text" id="addChannelNameInput" class="form-input-admin" placeholder="Ví dụ: TechLead Vietnam">
+            <input type="text" id="addChannelNameInput" class="form-input-admin" list="channelOptionsList" placeholder="Ví dụ: TechLead Vietnam">
           </div>
         </div>
+
+        <!-- Datalist dùng chung cho gợi ý Thể loại / Tên Kênh (Add & Edit) -->
+        <datalist id="categoryOptionsList"></datalist>
+        <datalist id="channelOptionsList"></datalist>
 
         <!-- Nguồn video: Link/Nhúng hoặc Tải file lên -->
         <div class="form-group-admin">

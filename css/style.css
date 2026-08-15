@@ -398,6 +398,12 @@ body {
   text-align: center;
 }
 
+.sidebar-empty-note {
+  padding: 8px 14px;
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+}
+
 .channel-item {
   display: flex;
   align-items: center;

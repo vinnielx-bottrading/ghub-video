@@ -26,6 +26,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const searchBtn = document.getElementById('searchBtn');
   const sidebar = document.getElementById('sidebar');
   const menuToggleBtn = document.getElementById('menuToggleBtn');
+  const navHomeBtn = document.getElementById('navHomeBtn');
+  const navTrendingBtn = document.getElementById('navTrendingBtn');
+  const sidebarCategoryList = document.getElementById('sidebarCategoryList');
   const toastContainer = document.getElementById('toastContainer');
 
   // Hero Spotlight Elements
@@ -176,17 +179,35 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================================================
   // Render Categories & Filter
   // ==========================================================================
+
+  // Đồng bộ danh sách CATEGORIES (dùng chung cho cả pill lọc phía trên lẫn
+  // menu "Thể loại" ở sidebar) theo đúng các category thật đang có trong dữ
+  // liệu video — để khi admin gõ thêm 1 thể loại mới lúc Thêm Video, nó tự
+  // xuất hiện ở đây (không cần sửa code / danh sách cứng nữa).
+  function syncCategoriesFromVideos() {
+    const dynamicCats = Array.from(new Set(videosData.map(v => v.category).filter(Boolean)))
+      .sort((a, b) => a.localeCompare(b, 'vi'));
+    const merged = ['Tất cả', 'Thịnh hành 🔥', ...dynamicCats];
+    CATEGORIES.length = 0;
+    CATEGORIES.push(...merged);
+  }
+
+  // Điểm chọn category dùng chung cho cả pill lọc phía trên VÀ menu sidebar,
+  // để 2 nơi này luôn đồng bộ trạng thái đang chọn với nhau.
+  function selectCategory(cat) {
+    activeCategory = cat;
+    renderCategories();
+    filterVideos();
+    if (window.innerWidth <= 768) sidebar.classList.remove('mobile-open');
+  }
+
   function renderCategories() {
     categoryBar.innerHTML = '';
     CATEGORIES.forEach(cat => {
       const chip = document.createElement('button');
       chip.className = `category-chip ${cat === activeCategory ? 'active' : ''}`;
       chip.textContent = cat;
-      chip.addEventListener('click', () => {
-        activeCategory = cat;
-        renderCategories();
-        filterVideos();
-      });
+      chip.addEventListener('click', () => selectCategory(cat));
       categoryBar.appendChild(chip);
     });
 
@@ -203,6 +224,39 @@ document.addEventListener('DOMContentLoaded', () => {
         videoCategorySelect.appendChild(opt);
       });
     }
+
+    renderSidebarCategories();
+    updateSidebarNavActiveState();
+  }
+
+  // Menu "Thể loại" ở sidebar trái — 1 mục cho mỗi category thật (không lặp
+  // lại "Tất cả"/"Thịnh hành" vì đã có sẵn ở nhóm "Khám phá" phía trên).
+  function renderSidebarCategories() {
+    if (!sidebarCategoryList) return;
+    sidebarCategoryList.innerHTML = '';
+    const dynamicCats = CATEGORIES.filter(c => c !== 'Tất cả' && c !== 'Thịnh hành 🔥');
+
+    if (dynamicCats.length === 0) {
+      sidebarCategoryList.innerHTML = '<div class="sidebar-empty-note">Chưa có thể loại nào</div>';
+      return;
+    }
+
+    dynamicCats.forEach(cat => {
+      const item = document.createElement('a');
+      item.href = '#';
+      item.className = `nav-item ${cat === activeCategory ? 'active' : ''}`;
+      item.innerHTML = `<i class="fa-solid fa-hashtag"></i><span class="nav-text">${cat}</span>`;
+      item.addEventListener('click', (e) => {
+        e.preventDefault();
+        selectCategory(cat);
+      });
+      sidebarCategoryList.appendChild(item);
+    });
+  }
+
+  function updateSidebarNavActiveState() {
+    if (navHomeBtn) navHomeBtn.classList.toggle('active', activeCategory === 'Tất cả');
+    if (navTrendingBtn) navTrendingBtn.classList.toggle('active', activeCategory === 'Thịnh hành 🔥');
   }
 
   // ==========================================================================
@@ -552,13 +606,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  if (navHomeBtn) {
+    navHomeBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      selectCategory('Tất cả');
+    });
+  }
+  if (navTrendingBtn) {
+    navTrendingBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      selectCategory('Thịnh hành 🔥');
+    });
+  }
+
   // Init App
+  syncCategoriesFromVideos();
   renderCategories();
   renderVideos(videosData);
   initHero();
 
   // Thử kết nối MongoDB Backend khi vừa tải trang
   fetchVideosFromBackend().then(() => {
+    syncCategoriesFromVideos();
+    renderCategories();
     renderVideos(videosData);
     initHero();
   });

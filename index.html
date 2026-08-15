@@ -60,11 +60,11 @@
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-group">
         <div class="sidebar-header-label">Khám phá</div>
-        <a href="#" class="nav-item active">
+        <a href="#" class="nav-item active" id="navHomeBtn">
           <i class="fa-solid fa-compass"></i>
           <span class="nav-text">Trang chủ</span>
         </a>
-        <a href="#" class="nav-item">
+        <a href="#" class="nav-item" id="navTrendingBtn">
           <i class="fa-solid fa-fire-flame-curved"></i>
           <span class="nav-text">Thịnh hành</span>
         </a>
@@ -72,6 +72,15 @@
           <i class="fa-solid fa-layer-group"></i>
           <span class="nav-text">Kênh theo dõi</span>
         </a>
+      </div>
+
+      <!-- Thể loại: tự động lấy theo danh mục video hiện có trong MongoDB —
+           admin gõ thêm thể loại mới khi Thêm Video sẽ tự xuất hiện ở đây. -->
+      <div class="sidebar-group">
+        <div class="sidebar-header-label">Thể loại</div>
+        <div id="sidebarCategoryList">
+          <!-- Injected via js/app.js -->
+        </div>
       </div>
 
       <div class="sidebar-group">
@@ -174,7 +183,12 @@
 
             <!-- Dùng cho video nhúng từ YouTube/Vimeo/embed khác — không điều khiển
                  được bằng thanh công cụ tùy chỉnh nên player-controls sẽ bị ẩn. -->
-            <iframe class="player-iframe" id="embedVideoPlayer" style="display:none;" src="" title="Video nhúng" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowfullscreen frameborder="0"></iframe>
+            <!-- sandbox: CHỈ cho phép chạy JS và giữ same-origin bên trong iframe —
+                 CỐ Ý bỏ allow-top-navigation / allow-popups / allow-popups-to-escape-sandbox
+                 để chặn kiểu quảng cáo "popunder"/redirect ép trang GHUB X nhảy sang
+                 trang khác hoặc mở tab mới khi người xem bấm vào video nhúng
+                 (rất phổ biến ở các nguồn nhúng miễn phí như mixdrop/streamtape/...). -->
+            <iframe class="player-iframe" id="embedVideoPlayer" style="display:none;" src="" title="Video nhúng" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowfullscreen frameborder="0" sandbox="allow-scripts allow-same-origin" referrerpolicy="no-referrer"></iframe>
 
             <!-- Frosted Floating Controls -->
             <div class="player-controls" id="playerControls">

@@ -20,6 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const videoTableBody = document.getElementById('videoTableBody');
   const searchInput = document.getElementById('searchAdminInput');
   const categoryFilter = document.getElementById('categoryFilter');
+  const categoryOptionsList = document.getElementById('categoryOptionsList');
+  const channelOptionsList = document.getElementById('channelOptionsList');
   const serverStatusText = document.getElementById('serverStatusText');
   const toastContainer = document.getElementById('adminToastContainer');
   const adminLogoutBtn = document.getElementById('adminLogoutBtn');
@@ -159,7 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const defaultCats = ["Lập trình", "Trí tuệ nhân tạo (AI)", "Thiết kế", "Gaming", "Âm nhạc", "Thiên nhiên", "Du lịch", "Khoa học & Vũ trụ", "Ẩm thực"];
     const existingCats = Array.from(new Set([...defaultCats, ...allVideos.map(v => v.category).filter(Boolean)]));
 
-    // Category filter in toolbar
+    // Category filter in toolbar (giữ nguyên dạng select — chỉ lọc, không cần gõ tự do)
     categoryFilter.innerHTML = '<option value="all">Tất cả thể loại</option>';
     existingCats.forEach(cat => {
       const opt = document.createElement('option');
@@ -168,16 +170,27 @@ document.addEventListener('DOMContentLoaded', () => {
       categoryFilter.appendChild(opt);
     });
 
-    // Modal category selects
-    [editCategorySelect, addCategorySelect].forEach(select => {
-      select.innerHTML = '';
+    // Datalist gợi ý cho ô Thể loại (Thêm/Sửa) — vẫn là <input> nên admin có
+    // thể gõ tự do 1 giá trị hoàn toàn mới không nằm trong danh sách gợi ý.
+    if (categoryOptionsList) {
+      categoryOptionsList.innerHTML = '';
       existingCats.forEach(cat => {
         const opt = document.createElement('option');
         opt.value = cat;
-        opt.textContent = cat;
-        select.appendChild(opt);
+        categoryOptionsList.appendChild(opt);
       });
-    });
+    }
+
+    // Datalist gợi ý Tên Kênh dựa trên các kênh đã dùng trước đó.
+    if (channelOptionsList) {
+      const existingChannels = Array.from(new Set(allVideos.map(v => v.channel?.name).filter(Boolean)));
+      channelOptionsList.innerHTML = '';
+      existingChannels.forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        channelOptionsList.appendChild(opt);
+      });
+    }
   }
 
   // ==========================================================================
@@ -520,6 +533,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function closeAddModal() {
     addModal.classList.remove('active');
     addTitleInput.value = '';
+    addCategorySelect.value = '';
     addThumbnailInput.value = '';
     addThumbnailInput.placeholder = 'https://images.unsplash.com/photo-... (tùy chọn)';
     addSourceInput.value = '';
