@@ -1,7 +1,15 @@
 // VidFlow API bridge
-// Keeps existing frontend code compatible while allowing the Express backend
-// to serve the frontend from the same domain in production.
 (function () {
+  // app.js expects this select even though the current homepage does not render
+  // the optional upload form. Create a harmless hidden control so initialization
+  // can continue without a null-reference error.
+  if (!document.getElementById('videoCategorySelect')) {
+    const select = document.createElement('select');
+    select.id = 'videoCategorySelect';
+    select.hidden = true;
+    document.body.appendChild(select);
+  }
+
   const originalFetch = window.fetch.bind(window);
   const legacyApi = 'https://vidflow-backend.onrender.com/api';
 
