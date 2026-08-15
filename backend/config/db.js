@@ -1,8 +1,9 @@
-const dns = require('dns');
-// Khắc phục lỗi phân giải DNS SRV trên Windows / mạng Việt Nam đối với MongoDB Atlas
-try {
-  dns.setServers(['8.8.8.8', '1.1.1.1']);
-} catch (e) {}
+// LƯU Ý: trước đây có ép dùng DNS công cộng (8.8.8.8 / 1.1.1.1) ở đây để né lỗi
+// phân giải DNS SRV khi chạy LOCAL trên Windows / mạng Việt Nam. Đoạn đó đã bị
+// gỡ vì khi deploy trên Render, nó gây lỗi bắt tay TLS với MongoDB Atlas
+// ("SSL alert number 80" / tlsv1 alert internal error) do resolver bị ép sai
+// tuyến mạng. Trên Render, dùng thẳng DNS resolver mặc định của hệ thống.
+const mongoose = require('mongoose');
 
 const mongoose = require('mongoose');
 
