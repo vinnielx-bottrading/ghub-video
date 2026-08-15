@@ -4,9 +4,6 @@
 // ("SSL alert number 80" / tlsv1 alert internal error) do resolver bị ép sai
 // tuyến mạng. Trên Render, dùng thẳng DNS resolver mặc định của hệ thống.
 const mongoose = require('mongoose');
-
-const mongoose = require('mongoose');
-
 // Nếu chưa kết nối, để các query (Video.find(), v.v...) báo lỗi NGAY thay vì
 // treo (hang) chờ trong im lặng — đây là nguyên nhân phổ biến khiến API bị
 // timeout mà không rõ lỗi đến từ Render hay MongoDB.
