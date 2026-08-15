@@ -2,7 +2,7 @@
 // VidFlow Pro - Frontend Application Logic with MongoDB API Integration
 // ==========================================================================
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'https://ghub-video.onrender.com/';
 
 document.addEventListener('DOMContentLoaded', () => {
   let videosData = [...SAMPLE_VIDEOS];
