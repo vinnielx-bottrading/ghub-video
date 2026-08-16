@@ -367,12 +367,28 @@ exports.updateVideo = async (req, res) => {
     const update = { ...req.body };
     if (typeof update.tags === 'string') update.tags = update.tags.split(',').map(t => t.trim()).filter(Boolean);
 
-    // Nếu ô "Đường dẫn Video URL" được sửa thành 1 link YouTube/Vimeo hoặc dán
-    // nguyên mã nhúng <iframe> (thay vì link file .mp4/.m3u8 trực tiếp), tự
-    // động phân giải lại thành sourceType/embedUrl đúng — nếu không, chuỗi
-    // <iframe...> hoặc link share sẽ bị lưu thẳng vào videoUrl khiến thẻ
-    // <video> ở trang xem không phát được gì (chính là lỗi vừa gặp).
-    if (typeof update.videoUrl === 'string' && update.videoUrl.trim()) {
+    // Ô "Nguồn Video" khi mở lại để Sửa chỉ hiện LINK TRẦN đã được tách sẵn
+    // từ mã nhúng <iframe> lúc tạo (vd link mixdrop/streamtape/doodstream...),
+    // KHÔNG hiện nguyên khối <iframe> gốc. Nếu admin Lưu mà không đụng gì tới
+    // ô này, link trần đó lại được gửi lên y nguyên — trước đây hệ thống sẽ
+    // cố "đoán lại" loại nguồn từ link trần này: YouTube/Vimeo/Dailymotion/
+    // TikTok vẫn nhận diện được (còn nguyên tên miền), nhưng các nguồn lạ
+    // (mixdrop/streamtape/doods...) thì KHÔNG có cách nhận diện là "nhúng"
+    // từ 1 link trần — bị hiểu nhầm thành "video trực tiếp" (sourceType:
+    // 'direct') và bị XOÁ LUÔN embedUrl, khiến video hỏng hẳn (nhá lên rồi
+    // đen vì trình duyệt cố phát 1 trang web bằng thẻ <video>).
+    //
+    // Cách sửa: chỉ tự đoán lại loại nguồn khi link trong ô này THỰC SỰ khác
+    // với link đang lưu trong DB. Không đổi gì thì giữ nguyên sourceType/
+    // embedUrl cũ — an toàn tuyệt đối cho các nguồn lạ. Muốn đổi sang 1 link
+    // nhúng khác từ nguồn lạ, admin cần dán lại NGUYÊN KHỐI <iframe src="...">
+    // (không phải link trần) để hệ thống nhận diện đúng là "nhúng".
+    const existingVideo = await Video.findById(req.params.id).select('videoUrl sourceType platform embedUrl thumbnail');
+    if (!existingVideo) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy video' });
+    }
+
+    if (typeof update.videoUrl === 'string' && update.videoUrl.trim() && update.videoUrl.trim() !== existingVideo.videoUrl) {
       const detected = detectSourceType(update.videoUrl);
       if (detected && detected !== 'direct') {
         const resolved = await resolveVideoSource(update.videoUrl);
@@ -390,6 +406,10 @@ exports.updateVideo = async (req, res) => {
         update.platform = 'direct';
         update.embedUrl = '';
       }
+    } else {
+      // Link không đổi (hoặc rỗng) — không đụng tới videoUrl/sourceType/
+      // platform/embedUrl, kể cả khi client vẫn gửi kèm chuỗi videoUrl cũ.
+      delete update.videoUrl;
     }
 
     // Ô Thumbnail gửi lên chuỗi rỗng nghĩa là "không đổi ảnh bìa hiện có" —

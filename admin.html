@@ -261,6 +261,7 @@
         <div class="form-group-admin">
           <label>Nguồn Video (link .mp4/.m3u8 trực tiếp, link YouTube/Vimeo, hoặc mã nhúng &lt;iframe&gt;)</label>
           <input type="text" id="editVideoUrlInput" class="form-input-admin" placeholder="https://... hoặc <iframe src=...>">
+          <p class="source-hint">Nếu video này được thêm bằng mã nhúng &lt;iframe&gt; từ nguồn lạ (mixdrop/streamtape/doodstream...), ô này chỉ hiện link đã tách sẵn — cứ để nguyên và Lưu bình thường sẽ KHÔNG ảnh hưởng gì. Chỉ khi muốn đổi sang 1 nguồn khác, hãy dán lại NGUYÊN KHỐI &lt;iframe src="..."&gt; (không dán link trần) để hệ thống nhận diện đúng.</p>
           <button type="button" class="btn-detect-source" id="editDetectSourceBtn" style="margin-top: 8px;">
             <i class="fa-solid fa-wand-magic-sparkles"></i> Nhận diện &amp; Xem trước
           </button>
@@ -271,6 +272,10 @@
               <span class="source-preview-note" id="editSourcePreviewNote"></span>
             </div>
           </div>
+          <button type="button" class="btn-detect-source" id="editSourceTestPlayBtn" style="margin-top: 8px; display:none;">
+            <i class="fa-solid fa-play"></i> Thử phát thử video ở đây (đúng như cách phát thật)
+          </button>
+          <div class="source-test-player-wrap" id="editSourceTestPlayerWrap" style="display:none;"></div>
         </div>
 
         <div class="form-group-admin">
@@ -372,6 +377,10 @@
                 <span class="source-preview-note" id="sourcePreviewNote"></span>
               </div>
             </div>
+            <button type="button" class="btn-detect-source" id="sourceTestPlayBtn" style="margin-top: 8px; display:none;">
+              <i class="fa-solid fa-play"></i> Thử phát thử video ở đây (đúng như cách phát thật)
+            </button>
+            <div class="source-test-player-wrap" id="sourceTestPlayerWrap" style="display:none;"></div>
           </div>
 
           <!-- Chế độ: tải file video trực tiếp từ máy -->

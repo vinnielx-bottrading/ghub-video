@@ -11,6 +11,7 @@ const API_BASE_URL = (window.location.hostname === 'localhost' || window.locatio
 document.addEventListener('DOMContentLoaded', () => {
   let allVideos = [];
   let currentEditingId = null;
+  let editDetectedSource = null; // kết quả gần nhất từ /videos/detect-source (modal Sửa)
 
   // DOM Elements
   const totalVideosEl = document.getElementById('totalVideos');
@@ -46,6 +47,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const editSourcePreviewImg = document.getElementById('editSourcePreviewImg');
   const editSourcePreviewBadge = document.getElementById('editSourcePreviewBadge');
   const editSourcePreviewNote = document.getElementById('editSourcePreviewNote');
+  const editSourceTestPlayBtn = document.getElementById('editSourceTestPlayBtn');
+  const editSourceTestPlayerWrap = document.getElementById('editSourceTestPlayerWrap');
 
   // Add Modal Elements
   const openAddModalBtn = document.getElementById('openAddModalBtn');
@@ -73,6 +76,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const sourcePreviewImg = document.getElementById('sourcePreviewImg');
   const sourcePreviewBadge = document.getElementById('sourcePreviewBadge');
   const sourcePreviewNote = document.getElementById('sourcePreviewNote');
+  const sourceTestPlayBtn = document.getElementById('sourceTestPlayBtn');
+  const sourceTestPlayerWrap = document.getElementById('sourceTestPlayerWrap');
   const addVideoFileInput = document.getElementById('addVideoFileInput');
   const addVideoFileName = document.getElementById('addVideoFileName');
   const bulkSourceInput = document.getElementById('bulkSourceInput');
@@ -96,6 +101,45 @@ document.addEventListener('DOMContentLoaded', () => {
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
     return num.toLocaleString();
+  }
+
+  // "Thử phát thử video" — dựng lại ĐÚNG cấu hình player thật (cùng thuộc
+  // tính sandbox/allow/referrerpolicy như trang xem công khai — xem
+  // index.html#embedVideoPlayer) để admin biết ngay 1 nguồn nhúng có phát
+  // được hay không TRƯỚC khi lưu, thay vì phải lưu xong mới biết bị đen.
+  // Phải khớp CHÍNH XÁC với index.html mỗi khi đổi mức sandbox ở đó.
+  const EMBED_SANDBOX = 'allow-scripts allow-same-origin allow-forms allow-popups';
+
+  function buildTestPlayerHtml(resolved) {
+    const isEmbedded = resolved.sourceType && ['youtube', 'vimeo', 'dailymotion', 'tiktok', 'iframe'].includes(resolved.sourceType) && resolved.embedUrl;
+    if (isEmbedded) {
+      const src = resolved.embedUrl.includes('?') ? `${resolved.embedUrl}&autoplay=1` : `${resolved.embedUrl}?autoplay=1`;
+      return `<iframe src="${src}" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowfullscreen frameborder="0" sandbox="${EMBED_SANDBOX}" referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+    }
+    if (resolved.videoUrl) {
+      return `<video src="${resolved.videoUrl}" controls autoplay playsinline></video>`;
+    }
+    return '';
+  }
+
+  // Bật/tắt khung thử phát. Tắt hẳn (xoá src) khi đóng để dừng phát/dừng mọi
+  // script quảng cáo đang chạy trong iframe thử nghiệm — không để nó chạy nền.
+  function toggleTestPlayer(btn, wrap, resolved) {
+    const isShowing = wrap.style.display !== 'none' && wrap.innerHTML.trim() !== '';
+    if (isShowing) {
+      wrap.innerHTML = '';
+      wrap.style.display = 'none';
+      btn.innerHTML = '<i class="fa-solid fa-play"></i> Thử phát thử video ở đây (đúng như cách phát thật)';
+      return;
+    }
+    const html = buildTestPlayerHtml(resolved);
+    if (!html) {
+      showToast('Nguồn này chưa có gì để thử phát.', 'error');
+      return;
+    }
+    wrap.innerHTML = html;
+    wrap.style.display = 'block';
+    btn.innerHTML = '<i class="fa-solid fa-stop"></i> Dừng thử phát';
   }
 
   // Nếu phiên đăng nhập Admin hết hạn (401), chuyển ngay về trang login thay
@@ -291,6 +335,10 @@ document.addEventListener('DOMContentLoaded', () => {
     editChannelNameInput.value = channel.name || 'GHUB X Creator';
     editVerifiedCheckbox.checked = channel.verified || false;
     editSourcePreview.style.display = 'none';
+    editDetectedSource = null;
+    editSourceTestPlayBtn.style.display = 'none';
+    editSourceTestPlayerWrap.style.display = 'none';
+    editSourceTestPlayerWrap.innerHTML = '';
 
     editModal.classList.add('active');
   }
@@ -299,7 +347,16 @@ document.addEventListener('DOMContentLoaded', () => {
     editModal.classList.remove('active');
     currentEditingId = null;
     editSourcePreview.style.display = 'none';
+    editDetectedSource = null;
+    editSourceTestPlayBtn.style.display = 'none';
+    editSourceTestPlayerWrap.style.display = 'none';
+    editSourceTestPlayerWrap.innerHTML = ''; // dừng phát/dừng script iframe thử nghiệm khi đóng modal
   }
+
+  editSourceTestPlayBtn.addEventListener('click', () => {
+    if (!editDetectedSource) return;
+    toggleTestPlayer(editSourceTestPlayBtn, editSourceTestPlayerWrap, editDetectedSource);
+  });
 
   const EDIT_PLATFORM_LABELS = {
     youtube: 'YouTube',
@@ -331,9 +388,18 @@ document.addEventListener('DOMContentLoaded', () => {
       const json = await res.json();
       if (!res.ok || !json.success) {
         editSourcePreview.style.display = 'none';
+        editSourceTestPlayBtn.style.display = 'none';
+        editSourceTestPlayerWrap.style.display = 'none';
+        editSourceTestPlayerWrap.innerHTML = '';
         showToast(json.message || 'Không nhận diện được nguồn video.', 'error');
         return;
       }
+
+      editDetectedSource = json;
+      editSourceTestPlayBtn.style.display = 'inline-flex';
+      editSourceTestPlayerWrap.style.display = 'none';
+      editSourceTestPlayerWrap.innerHTML = '';
+      editSourceTestPlayBtn.innerHTML = '<i class="fa-solid fa-play"></i> Thử phát thử video ở đây (đúng như cách phát thật)';
 
       editSourcePreview.style.display = 'flex';
       editSourcePreviewBadge.textContent = EDIT_PLATFORM_LABELS[json.platform] || json.sourceType;
@@ -432,7 +498,15 @@ document.addEventListener('DOMContentLoaded', () => {
     sourcePreviewImg.src = '';
     sourcePreviewBadge.textContent = '—';
     sourcePreviewNote.textContent = '';
+    sourceTestPlayBtn.style.display = 'none';
+    sourceTestPlayerWrap.style.display = 'none';
+    sourceTestPlayerWrap.innerHTML = ''; // dừng phát/dừng script iframe thử nghiệm
   }
+
+  sourceTestPlayBtn.addEventListener('click', () => {
+    if (!detectedSource) return;
+    toggleTestPlayer(sourceTestPlayBtn, sourceTestPlayerWrap, detectedSource);
+  });
 
   function switchSourceMode(mode) {
     addSourceMode = mode;
@@ -501,6 +575,11 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       detectedSource = json;
+      sourceTestPlayBtn.style.display = 'inline-flex';
+      sourceTestPlayerWrap.style.display = 'none';
+      sourceTestPlayerWrap.innerHTML = '';
+      sourceTestPlayBtn.innerHTML = '<i class="fa-solid fa-play"></i> Thử phát thử video ở đây (đúng như cách phát thật)';
+
       sourcePreview.style.display = 'flex';
       sourcePreviewBadge.textContent = PLATFORM_LABELS[json.platform] || json.sourceType;
       sourcePreviewImg.src = json.thumbnail || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=85';

@@ -16,6 +16,17 @@ connectDB();
 const app = express();
 const FRONTEND_ROOT = path.join(__dirname, '..');
 
+// Render (và hầu hết PaaS) đặt server sau 1 reverse proxy: proxy nhận kết
+// nối HTTPS thật từ trình duyệt, rồi forward vào app bằng HTTP nội bộ. Nếu
+// không khai báo "trust proxy", Express sẽ luôn đọc req.protocol là 'http'
+// (vì kết nối TCP thật tới app đúng là http), khiến mọi URL tự ghép cho file
+// tải lên (thumbnail/video) bị lưu nhầm thành "http://..." dù trang đang
+// chạy "https://..." — gây cảnh báo "Mixed Content" trên Console và có thể
+// khiến ảnh/video không tải được ở 1 số trình duyệt/cấu hình chặn mixed
+// content nghiêm ngặt. Bật trust proxy để req.protocol đọc đúng header
+// X-Forwarded-Proto mà Render gắn vào, trả về đúng 'https'.
+app.set('trust proxy', 1);
+
 const MONGO_STATE_LABELS = {
   0: 'disconnected',
   1: 'connected',

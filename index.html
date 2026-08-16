@@ -140,11 +140,18 @@
 
             <!-- Dùng cho video nhúng từ YouTube/Vimeo/embed khác — không điều khiển
                  được bằng thanh công cụ tùy chỉnh nên player-controls sẽ bị ẩn. -->
-            <!-- sandbox: CHỈ cho phép chạy JS và giữ same-origin bên trong iframe —
-                 CỐ Ý bỏ allow-top-navigation / allow-popups / allow-popups-to-escape-sandbox
-                 để chặn kiểu quảng cáo "popunder"/redirect ép trang GHUB X nhảy sang
-                 trang khác hoặc mở tab mới khi người xem bấm vào video nhúng
-                 (rất phổ biến ở các nguồn nhúng miễn phí như mixdrop/streamtape/byse/...).
+            <!-- sandbox: nới lỏng có kiểm soát (thử nghiệm theo yêu cầu) — thêm
+                 allow-forms + allow-popups vì 1 số player nhúng (kiểu mixdrop/
+                 streamtape/doodstream) tự crash (vd lỗi JS "__i18n is not
+                 defined") khi 1 script phụ trợ của họ (thường là quảng cáo/
+                 theo dõi) bị chặn hoàn toàn bởi sandbox quá chặt, khiến cả
+                 player chính không khởi chạy được (nhá lên rồi đen).
+                 VẪN CỐ Ý bỏ allow-top-navigation / allow-popups-to-escape-sandbox
+                 — đây là ranh giới quan trọng nhất: dù cho phép mở TAB MỚI
+                 (allow-popups), trang GHUB X ở tab hiện tại KHÔNG THỂ bị ép
+                 chuyển hướng sang trang khác. Rủi ro còn lại: người xem có thể
+                 bị mở tab quảng cáo mới khi bấm vào video nhúng — khó chịu
+                 nhưng không nguy hiểm bằng bị hijack cả trang đang xem.
                  Lưu ý: sandbox cũng khiến Chrome chặn hẳn việc tải "plugin" (vd PDF
                  giả dạng quảng cáo/dò ad-blocker) bên trong iframe — đây là giới hạn
                  cứng của trình duyệt, không có token sandbox nào bật lại được, và
@@ -158,7 +165,7 @@
                  https://ghub-video.onrender.com), KHÔNG gửi đường dẫn trang/video cụ thể
                  đang xem, vẫn giữ được phần lớn quyền riêng tư trong khi đáp ứng được
                  kiểm tra referer của các nguồn nhúng này. -->
-            <iframe class="player-iframe" id="embedVideoPlayer" style="display:none;" src="" title="Video nhúng" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowfullscreen frameborder="0" sandbox="allow-scripts allow-same-origin" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+            <iframe class="player-iframe" id="embedVideoPlayer" style="display:none;" src="" title="Video nhúng" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowfullscreen frameborder="0" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" referrerpolicy="strict-origin-when-cross-origin"></iframe>
 
             <!-- Frosted Floating Controls -->
             <div class="player-controls" id="playerControls">
