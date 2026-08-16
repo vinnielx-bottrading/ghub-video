@@ -6,7 +6,10 @@ const fs = require('fs');
 const uploadDirs = [
   path.join(__dirname, '../uploads'),
   path.join(__dirname, '../uploads/videos'),
-  path.join(__dirname, '../uploads/thumbnails')
+  path.join(__dirname, '../uploads/thumbnails'),
+  // Ảnh Bộ sưu tập ảnh (Gallery) — tải hàng loạt, lưu riêng thư mục để dễ
+  // phân biệt với thumbnail video khi xem trực tiếp ổ đĩa cục bộ.
+  path.join(__dirname, '../uploads/gallery')
 ];
 
 uploadDirs.forEach(dir => {
@@ -22,6 +25,8 @@ const storage = multer.diskStorage({
       cb(null, path.join(__dirname, '../uploads/videos'));
     } else if (file.fieldname === 'thumbnail') {
       cb(null, path.join(__dirname, '../uploads/thumbnails'));
+    } else if (file.fieldname === 'images') {
+      cb(null, path.join(__dirname, '../uploads/gallery'));
     } else {
       cb(null, path.join(__dirname, '../uploads'));
     }
@@ -41,11 +46,11 @@ const fileFilter = (req, file, cb) => {
     } else {
       cb(new Error('Chỉ chấp nhận file video (mp4, mov, webm, mkv)!'), false);
     }
-  } else if (file.fieldname === 'thumbnail') {
+  } else if (file.fieldname === 'thumbnail' || file.fieldname === 'images') {
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
     } else {
-      cb(new Error('Chỉ chấp nhận file ảnh thumbnail (jpg, png, webp)!'), false);
+      cb(new Error('Chỉ chấp nhận file ảnh (jpg, png, webp, gif...)!'), false);
     }
   } else {
     cb(null, true);

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="GHUB X - Bộ sưu tập ảnh theo chủ đề, thư viện ngẫu nhiên.">
+  <title>Bộ Sưu Tập Ảnh - GHUB X</title>
+
+  <!-- Premium Font: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome 6 Pro Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Main Stylesheet (dùng chung với trang chủ) -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Frosted Glass Navbar — bỏ ô tìm kiếm giữa header vì trang này chưa có
+       chức năng tìm kiếm ảnh, giữ logo + trạng thái đăng nhập giống trang chủ. -->
+  <header class="header">
+    <div class="header-left">
+      <button class="menu-toggle-btn" id="menuToggleBtn" title="Thu gọn / Mở rộng menu">
+        <i class="fa-solid fa-bars-staggered"></i>
+      </button>
+      <a href="index.html" class="brand-logo">
+        <div class="brand-icon">
+          <i class="fa-solid fa-play"></i>
+        </div>
+        <span>GHUB <span class="brand-text-pro">X</span></span>
+      </a>
+    </div>
+
+    <div class="header-center"></div>
+
+    <div class="header-right">
+      <div id="headerAuthSlot" class="header-auth-slot">
+        <!-- Injected via js/auth.js: nút "Đăng nhập" hoặc phiên người dùng hiện tại -->
+      </div>
+    </div>
+  </header>
+
+  <!-- App Structure -->
+  <div class="app-container">
+
+    <!-- Sidebar — thêm mục "Bộ sưu tập ảnh" (đang active trên trang này) bên
+         cạnh "Trang chủ", theo đúng cấu trúc sidebar của index.html. -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-group">
+        <div class="sidebar-header-label">Khám phá</div>
+        <a href="index.html" class="nav-item">
+          <i class="fa-solid fa-compass"></i>
+          <span class="nav-text">Trang chủ</span>
+        </a>
+        <a href="gallery.html" class="nav-item active" id="navGalleryBtn">
+          <i class="fa-solid fa-images"></i>
+          <span class="nav-text">Bộ sưu tập ảnh</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main Content Flow -->
+    <main class="main-content">
+
+      <!-- Section Title -->
+      <div class="section-header-row">
+        <h2 class="section-title">
+          <i class="fa-solid fa-images" style="color: var(--accent-primary);"></i>
+          <span>Bộ sưu tập ảnh</span>
+        </h2>
+      </div>
+
+      <!-- Nút chủ đề — lấy từ GET /api/gallery/topics, bấm vào mở cửa sổ
+           cùng trang hiện toàn bộ ảnh của chủ đề đó. -->
+      <div class="category-bar-wrapper" id="galleryTopicBar">
+        <!-- Injected via js/gallery.js -->
+      </div>
+      <div class="gallery-empty-note" id="galleryTopicBarEmpty" style="display:none;">
+        Admin chưa tạo chủ đề nào trong Dashboard.
+      </div>
+
+      <!-- Thư viện ngẫu nhiên -->
+      <div class="section-header-row" style="margin-top: 8px;">
+        <h2 class="section-title">
+          <i class="fa-solid fa-shuffle" style="color: var(--accent-primary);"></i>
+          <span>Thư viện ngẫu nhiên</span>
+        </h2>
+        <button class="pagination-btn" id="shuffleGalleryBtn" title="Xáo trộn ảnh khác">
+          <i class="fa-solid fa-shuffle"></i>
+          <span>Xáo trộn</span>
+        </button>
+      </div>
+
+      <section class="gallery-random-grid" id="randomGalleryGrid">
+        <!-- Injected via js/gallery.js -->
+      </section>
+      <div class="gallery-empty-note" id="randomGalleryEmpty" style="display:none;">
+        Chưa có ảnh nào trong bộ sưu tập.
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Cửa sổ chủ đề — hiện toàn bộ ảnh của 1 chủ đề dạng lưới tĩnh, bấm vào
+       1 ảnh sẽ mở slideshow toàn màn hình (gallery-lightbox). -->
+  <div class="gallery-topic-overlay" id="galleryTopicOverlay">
+    <div class="gallery-topic-overlay-header">
+      <div class="gallery-topic-overlay-title-group">
+        <h2 id="galleryTopicOverlayTitle">Chủ đề</h2>
+        <span class="gallery-topic-overlay-count" id="galleryTopicOverlayCount"></span>
+      </div>
+      <button class="close-watch-btn" id="closeGalleryTopicBtn" title="Đóng">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div class="gallery-topic-overlay-grid" id="galleryTopicOverlayGrid">
+      <!-- Injected via js/gallery.js -->
+    </div>
+  </div>
+
+  <!-- Slideshow toàn màn hình — mở khi bấm vào bất kỳ ảnh nào (từ cửa sổ chủ
+       đề hoặc thư viện ngẫu nhiên). -->
+  <div class="gallery-lightbox" id="galleryLightbox">
+    <button class="close-watch-btn" id="closeGalleryLightboxBtn" title="Đóng">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+    <button class="gallery-lightbox-nav gallery-lightbox-prev" id="galleryLightboxPrev" title="Ảnh trước">
+      <i class="fa-solid fa-chevron-left"></i>
+    </button>
+    <div class="gallery-lightbox-stage">
+      <img id="galleryLightboxImg" src="" alt="">
+      <div class="gallery-lightbox-caption" id="galleryLightboxCaption"></div>
+      <div class="gallery-lightbox-counter" id="galleryLightboxCounter"></div>
+    </div>
+    <button class="gallery-lightbox-nav gallery-lightbox-next" id="galleryLightboxNext" title="Ảnh tiếp theo">
+      <i class="fa-solid fa-chevron-right"></i>
+    </button>
+  </div>
+
+  <!-- Auth Modal: Đăng nhập / Đăng ký người xem (giống hệt index.html để
+       js/auth.js dùng chung không sửa đổi gì). -->
+  <div class="auth-modal-overlay" id="authModal">
+    <div class="auth-modal-card">
+      <button class="auth-modal-close" id="authModalClose" title="Đóng">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div class="auth-modal-brand">
+        <div class="icon"><i class="fa-solid fa-clapperboard"></i></div>
+        <span>GHUB <b>X</b></span>
+      </div>
+
+      <div class="auth-tabs">
+        <button type="button" class="auth-tab-btn active" id="authTabLogin">Đăng nhập</button>
+        <button type="button" class="auth-tab-btn" id="authTabRegister">Đăng ký</button>
+      </div>
+
+      <!-- Đăng nhập -->
+      <form class="auth-form" id="loginFormViewer" style="display:flex;">
+        <div class="auth-error" id="loginErrorViewer"></div>
+        <div class="auth-field">
+          <label for="loginUsernameViewer">Tên đăng nhập hoặc email</label>
+          <input type="text" id="loginUsernameViewer" autocomplete="username" required>
+        </div>
+        <div class="auth-field">
+          <label for="loginPasswordViewer">Mật khẩu</label>
+          <input type="password" id="loginPasswordViewer" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="auth-submit-btn" id="loginSubmitBtnViewer">Đăng nhập</button>
+      </form>
+
+      <!-- Đăng ký -->
+      <form class="auth-form" id="registerFormViewer" style="display:none;">
+        <div class="auth-error" id="registerErrorViewer"></div>
+        <div class="auth-field">
+          <label for="regUsername">Tên đăng nhập</label>
+          <input type="text" id="regUsername" autocomplete="username" minlength="3" maxlength="30" required>
+        </div>
+        <div class="auth-field">
+          <label for="regEmail">Email</label>
+          <input type="email" id="regEmail" autocomplete="email" required>
+        </div>
+        <div class="auth-field">
+          <label for="regPassword">Mật khẩu</label>
+          <input type="password" id="regPassword" autocomplete="new-password" minlength="6" required>
+        </div>
+        <div class="auth-field">
+          <label for="regPasswordConfirm">Nhập lại mật khẩu</label>
+          <input type="password" id="regPasswordConfirm" autocomplete="new-password" minlength="6" required>
+        </div>
+        <div class="auth-field">
+          <label>Mã xác nhận (CAPTCHA)</label>
+          <div class="captcha-row">
+            <img id="captchaImg" class="captcha-img" alt="Mã CAPTCHA" src="">
+            <button type="button" class="captcha-refresh-btn" id="captchaRefreshBtn" title="Tải mã khác">
+              <i class="fa-solid fa-rotate"></i>
+            </button>
+          </div>
+          <input type="text" id="regCaptchaInput" class="captcha-input" placeholder="Nhập mã trong ảnh" autocomplete="off" required>
+        </div>
+        <button type="submit" class="auth-submit-btn" id="registerSubmitBtnViewer">Đăng ký</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Scripts -->
+  <script src="js/auth.js"></script>
+  <script src="js/gallery.js"></script>
+</body>
+</html>

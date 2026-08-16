@@ -9,6 +9,7 @@ const videoRoutes = require('./routes/videoRoutes');
 const authRoutes = require('./routes/authRoutes');
 const heroBannerRoutes = require('./routes/heroBannerRoutes');
 const mediaRoutes = require('./routes/mediaRoutes');
+const galleryRoutes = require('./routes/galleryRoutes');
 const { requireAdminPage } = require('./middleware/adminAuth');
 
 connectDB();
@@ -58,11 +59,13 @@ const requireMongoReady = (req, res, next) => {
 app.use('/api/videos', requireMongoReady);
 app.use('/api/hero-banners', requireMongoReady);
 app.use('/api/media', requireMongoReady);
+app.use('/api/gallery', requireMongoReady);
 
 // REST API used by index.html and admin.html.
 app.use('/api/videos', videoRoutes);
 app.use('/api/hero-banners', heroBannerRoutes);
 app.use('/api/media', mediaRoutes);
+app.use('/api/gallery', galleryRoutes);
 
 // Đăng nhập/đăng xuất Admin.
 app.use('/api/auth', authRoutes);

@@ -1005,9 +1005,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const navSectionVideos = document.getElementById('navSectionVideos');
   const navSectionHeroBanner = document.getElementById('navSectionHeroBanner');
   const navSectionMedia = document.getElementById('navSectionMedia');
+  const navSectionGallery = document.getElementById('navSectionGallery');
   const videoManagementSection = document.getElementById('videoManagementSection');
   const heroBannerSection = document.getElementById('heroBannerSection');
   const mediaSection = document.getElementById('mediaSection');
+  const gallerySection = document.getElementById('gallerySection');
   const openAddBannerBtn = document.getElementById('openAddBannerBtn');
   const heroBannerCount = document.getElementById('heroBannerCount');
   const heroBannerGrid = document.getElementById('heroBannerGrid');
@@ -1040,9 +1042,11 @@ document.addEventListener('DOMContentLoaded', () => {
     navSectionVideos.classList.toggle('active', section === 'videos');
     navSectionHeroBanner.classList.toggle('active', section === 'hero');
     navSectionMedia.classList.toggle('active', section === 'media');
+    navSectionGallery.classList.toggle('active', section === 'gallery');
     videoManagementSection.style.display = section === 'videos' ? '' : 'none';
     heroBannerSection.style.display = section === 'hero' ? '' : 'none';
     mediaSection.style.display = section === 'media' ? '' : 'none';
+    gallerySection.style.display = section === 'gallery' ? '' : 'none';
   }
   navSectionVideos.addEventListener('click', (e) => { e.preventDefault(); switchAdminSection('videos'); });
   navSectionHeroBanner.addEventListener('click', (e) => {
@@ -1054,6 +1058,11 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
     switchAdminSection('media');
     loadMediaLibrary();
+  });
+  navSectionGallery.addEventListener('click', (e) => {
+    e.preventDefault();
+    switchAdminSection('gallery');
+    loadGalleryTopics();
   });
 
   async function loadHeroBanners() {
@@ -1341,6 +1350,277 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   refreshMediaBtn.addEventListener('click', loadMediaLibrary);
+
+  // ==========================================================================
+  // Mục Bộ sưu tập ảnh — quản lý các chủ đề ảnh hiển thị trên trang
+  // "Bộ sưu tập ảnh" (gallery.html) của người xem. Chủ đề được suy ra trực
+  // tiếp từ dữ liệu ảnh (giống cách "category" của Video hoạt động) — không
+  // phải bảng riêng, nên tự biến mất khi ảnh cuối cùng của nó bị xoá.
+  // ==========================================================================
+  const openAddGalleryBtn = document.getElementById('openAddGalleryBtn');
+  const galleryTopicCount = document.getElementById('galleryTopicCount');
+  const galleryTopicGrid = document.getElementById('galleryTopicGrid');
+  const galleryTopicOptionsList = document.getElementById('galleryTopicOptionsList');
+
+  const addGalleryModal = document.getElementById('addGalleryModal');
+  const closeAddGalleryModalBtn = document.getElementById('closeAddGalleryModalBtn');
+  const cancelAddGalleryBtn = document.getElementById('cancelAddGalleryBtn');
+  const submitAddGalleryBtn = document.getElementById('submitAddGalleryBtn');
+  const galleryTopicInput = document.getElementById('galleryTopicInput');
+  const galleryTabUpload = document.getElementById('galleryTabUpload');
+  const galleryTabLink = document.getElementById('galleryTabLink');
+  const galleryPanelUpload = document.getElementById('galleryPanelUpload');
+  const galleryPanelLink = document.getElementById('galleryPanelLink');
+  const galleryImageFilesInput = document.getElementById('galleryImageFilesInput');
+  const galleryImageFilesName = document.getElementById('galleryImageFilesName');
+  const galleryLinksInput = document.getElementById('galleryLinksInput');
+  const galleryBulkResultsBox = document.getElementById('galleryBulkResultsBox');
+
+  const galleryManageModal = document.getElementById('galleryManageModal');
+  const closeGalleryManageModalBtn = document.getElementById('closeGalleryManageModalBtn');
+  const galleryManageModalTitle = document.getElementById('galleryManageModalTitle');
+  const galleryManageGrid = document.getElementById('galleryManageGrid');
+  const deleteGalleryTopicBtn = document.getElementById('deleteGalleryTopicBtn');
+
+  let galleryTopics = [];
+  let galleryManageCurrentTopic = null;
+
+  async function loadGalleryTopics() {
+    galleryTopicGrid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color: var(--text-tertiary);"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải...</div>`;
+    try {
+      const res = await fetch(`${API_BASE_URL}/gallery/topics`);
+      const json = await res.json().catch(() => null);
+      galleryTopics = (res.ok && json?.success) ? json.data : [];
+    } catch (e) {
+      galleryTopics = [];
+    }
+    renderGalleryTopicGrid();
+    renderGalleryTopicOptions();
+  }
+
+  function renderGalleryTopicOptions() {
+    galleryTopicOptionsList.innerHTML = galleryTopics
+      .map(t => `<option value="${t.topic.replace(/"/g, '&quot;')}"></option>`)
+      .join('');
+  }
+
+  function renderGalleryTopicGrid() {
+    galleryTopicCount.textContent = `${galleryTopics.length} chủ đề`;
+    galleryTopicGrid.innerHTML = '';
+
+    if (galleryTopics.length === 0) {
+      galleryTopicGrid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color: var(--text-tertiary);">Chưa có chủ đề nào — bấm "Thêm ảnh" để bắt đầu.</div>`;
+      return;
+    }
+
+    galleryTopics.forEach(t => {
+      const card = document.createElement('div');
+      card.className = 'hero-banner-card';
+      card.style.cursor = 'pointer';
+      card.innerHTML = `
+        <img src="${t.coverImage}" class="hero-banner-card-img" alt="Chủ đề ${t.topic}">
+        <div class="hero-banner-card-info">
+          <span class="hero-banner-card-badge" title="${t.topic}">${t.topic}</span>
+          <span style="font-size:0.72rem; color:var(--text-tertiary);">${t.count} ảnh</span>
+        </div>
+      `;
+      card.addEventListener('click', () => openGalleryManageModal(t.topic));
+      galleryTopicGrid.appendChild(card);
+    });
+  }
+
+  // 2 tab chỉ để hiện/ẩn giao diện — khi gửi, hệ thống gộp chung cả file đã
+  // chọn (nếu có) VÀ link đã dán (nếu có) vào cùng 1 lần gửi, đúng như thiết
+  // kế của POST /api/gallery/photos/bulk (backend hỗ trợ kết hợp cả 2 nguồn).
+  function switchGalleryTabMode(mode) {
+    galleryTabUpload.classList.toggle('active', mode === 'upload');
+    galleryTabLink.classList.toggle('active', mode === 'link');
+    galleryPanelUpload.style.display = mode === 'upload' ? 'flex' : 'none';
+    galleryPanelLink.style.display = mode === 'link' ? 'flex' : 'none';
+  }
+  galleryTabUpload.addEventListener('click', () => switchGalleryTabMode('upload'));
+  galleryTabLink.addEventListener('click', () => switchGalleryTabMode('link'));
+
+  galleryImageFilesInput.addEventListener('change', () => {
+    const count = galleryImageFilesInput.files.length;
+    galleryImageFilesName.textContent = count ? `${count} ảnh đã chọn` : 'Chọn nhiều ảnh (JPG, PNG, WebP...)';
+  });
+
+  function openAddGalleryModal() {
+    galleryTopicInput.value = '';
+    galleryImageFilesInput.value = '';
+    galleryImageFilesName.textContent = 'Chọn nhiều ảnh (JPG, PNG, WebP...)';
+    galleryLinksInput.value = '';
+    galleryBulkResultsBox.style.display = 'none';
+    galleryBulkResultsBox.innerHTML = '';
+    switchGalleryTabMode('upload');
+    addGalleryModal.classList.add('active');
+  }
+  function closeAddGalleryModal() {
+    addGalleryModal.classList.remove('active');
+  }
+  openAddGalleryBtn.addEventListener('click', openAddGalleryModal);
+  closeAddGalleryModalBtn.addEventListener('click', closeAddGalleryModal);
+  cancelAddGalleryBtn.addEventListener('click', closeAddGalleryModal);
+
+  function renderGalleryBulkResults(json) {
+    const { summary, failedItems } = json;
+    galleryBulkResultsBox.style.display = 'block';
+
+    let html = `<div class="bulk-results-summary">
+      Kết quả: <strong>${summary.succeeded}/${summary.total}</strong> ảnh đã thêm thành công`
+      + (summary.failed > 0 ? `, <strong style="color:#ff6b6b;">${summary.failed}</strong> thất bại.` : '.')
+      + `</div>`;
+
+    if (failedItems && failedItems.length) {
+      html += '<ul class="bulk-results-errors">';
+      failedItems.forEach(item => {
+        const sourceText = (item.source || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        html += `<li><strong>${sourceText}${sourceText.length >= 160 ? '…' : ''}:</strong> ${item.message}</li>`;
+      });
+      html += '</ul>';
+    }
+
+    galleryBulkResultsBox.innerHTML = html;
+  }
+
+  submitAddGalleryBtn.addEventListener('click', async () => {
+    const topic = galleryTopicInput.value.trim();
+    if (!topic) {
+      showToast('Vui lòng nhập tên chủ đề.', 'error');
+      galleryTopicInput.focus();
+      return;
+    }
+    const files = galleryImageFilesInput.files;
+    const links = galleryLinksInput.value.trim();
+    if ((!files || files.length === 0) && !links) {
+      showToast('Vui lòng chọn ít nhất 1 ảnh để tải lên hoặc dán ít nhất 1 link ảnh.', 'error');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('topic', topic);
+    if (files && files.length) {
+      Array.from(files).forEach(f => formData.append('images', f));
+    }
+    if (links) {
+      formData.append('links', links);
+    }
+
+    submitAddGalleryBtn.disabled = true;
+    submitAddGalleryBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang thêm...';
+    galleryBulkResultsBox.style.display = 'none';
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/gallery/photos/bulk`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        body: formData
+      });
+      if (redirectIfSessionExpired(res)) return;
+      const json = await res.json().catch(() => null);
+
+      if (json?.summary) {
+        renderGalleryBulkResults(json);
+      }
+
+      if (res.ok && json?.success) {
+        showToast(`🎉 Đã thêm ${json.summary.succeeded}/${json.summary.total} ảnh thành công!`);
+        galleryImageFilesInput.value = '';
+        galleryImageFilesName.textContent = 'Chọn nhiều ảnh (JPG, PNG, WebP...)';
+        galleryLinksInput.value = '';
+        await loadGalleryTopics();
+      } else if (!json?.summary) {
+        showToast(json?.message || 'Có lỗi xảy ra khi thêm ảnh.', 'error');
+      } else {
+        showToast('Không có ảnh nào được thêm — xem chi tiết lỗi bên dưới.', 'error');
+      }
+    } catch (e) {
+      showToast('Không thể kết nối tới server để thêm ảnh.', 'error');
+    } finally {
+      submitAddGalleryBtn.disabled = false;
+      submitAddGalleryBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> <span>Thêm ảnh</span>';
+    }
+  });
+
+  async function openGalleryManageModal(topic) {
+    galleryManageCurrentTopic = topic;
+    galleryManageModalTitle.textContent = `Quản lý ảnh: ${topic}`;
+    galleryManageGrid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color: var(--text-tertiary);"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải...</div>`;
+    galleryManageModal.classList.add('active');
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/gallery/photos?topic=${encodeURIComponent(topic)}&limit=200`);
+      const json = await res.json().catch(() => null);
+      const photos = (res.ok && json?.success) ? json.data : [];
+      renderGalleryManageGrid(photos);
+    } catch (e) {
+      galleryManageGrid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color: var(--text-tertiary);">Không tải được ảnh của chủ đề này.</div>`;
+    }
+  }
+
+  function renderGalleryManageGrid(photos) {
+    galleryManageGrid.innerHTML = '';
+    if (!photos.length) {
+      galleryManageGrid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color: var(--text-tertiary);">Chủ đề này chưa có ảnh nào.</div>`;
+      return;
+    }
+    photos.forEach(photo => {
+      const card = document.createElement('div');
+      card.className = 'hero-banner-card';
+      card.innerHTML = `
+        <img src="${photo.imageUrl}" class="hero-banner-card-img" alt="Ảnh chủ đề">
+        <button class="hero-banner-card-delete" title="Xoá ảnh này"><i class="fa-solid fa-trash"></i></button>
+      `;
+      card.querySelector('.hero-banner-card-delete').addEventListener('click', () => deleteGalleryPhoto(photo));
+      galleryManageGrid.appendChild(card);
+    });
+  }
+
+  async function deleteGalleryPhoto(photo) {
+    const isConfirm = confirm('Xoá ảnh này khỏi chủ đề?');
+    if (!isConfirm) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/gallery/photos/${photo._id}`, { method: 'DELETE', credentials: 'same-origin' });
+      if (redirectIfSessionExpired(res)) return;
+      const json = await res.json().catch(() => null);
+      if (res.ok && json?.success) {
+        showToast('Đã xoá ảnh.');
+        await openGalleryManageModal(galleryManageCurrentTopic);
+        await loadGalleryTopics();
+      } else {
+        showToast(json?.message || 'Không thể xoá ảnh này.', 'error');
+      }
+    } catch (e) {
+      showToast('Lỗi khi xoá ảnh.', 'error');
+    }
+  }
+
+  closeGalleryManageModalBtn.addEventListener('click', () => {
+    galleryManageModal.classList.remove('active');
+    galleryManageCurrentTopic = null;
+  });
+
+  deleteGalleryTopicBtn.addEventListener('click', async () => {
+    if (!galleryManageCurrentTopic) return;
+    const isConfirm = confirm(`Xoá toàn bộ chủ đề "${galleryManageCurrentTopic}" và tất cả ảnh bên trong? Không thể hoàn tác.`);
+    if (!isConfirm) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/gallery/topics/${encodeURIComponent(galleryManageCurrentTopic)}`, { method: 'DELETE', credentials: 'same-origin' });
+      if (redirectIfSessionExpired(res)) return;
+      const json = await res.json().catch(() => null);
+      if (res.ok && json?.success) {
+        showToast(json.message || 'Đã xoá chủ đề.');
+        galleryManageModal.classList.remove('active');
+        galleryManageCurrentTopic = null;
+        await loadGalleryTopics();
+      } else {
+        showToast(json?.message || 'Không thể xoá chủ đề này.', 'error');
+      }
+    } catch (e) {
+      showToast('Lỗi khi xoá chủ đề.', 'error');
+    }
+  });
 
   // Initialize
   loadVideos();

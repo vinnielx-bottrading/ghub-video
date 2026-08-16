@@ -62,6 +62,10 @@
           <i class="fa-solid fa-photo-film"></i>
           <span>Thư viện ảnh</span>
         </a>
+        <a href="#" class="admin-nav-item" id="navSectionGallery">
+          <i class="fa-solid fa-panorama"></i>
+          <span>Bộ sưu tập ảnh</span>
+        </a>
         <a href="#" class="admin-nav-item">
           <i class="fa-solid fa-chart-line"></i>
           <span>Thống kê phân tích</span>
@@ -216,6 +220,31 @@
 
         <div class="hero-banner-grid" id="mediaGrid">
           <!-- Dynamic media cards injected via JS -->
+        </div>
+      </div>
+
+      <!-- Mục: Bộ sưu tập ảnh (ẩn mặc định) — quản lý các chủ đề ảnh hiển
+           thị trên trang "Bộ sưu tập ảnh" (gallery.html) của người xem. Mỗi
+           chủ đề là 1 nhóm ảnh do admin tự đặt tên khi thêm, có thể tải ảnh
+           lên hàng loạt và/hoặc dán nhiều link ảnh trong cùng 1 lần. -->
+      <div id="gallerySection" style="display:none;">
+        <div class="admin-title-row">
+          <div>
+            <h1 class="admin-headline">Bộ sưu tập ảnh</h1>
+            <p class="admin-subheadline">Quản lý các chủ đề ảnh hiển thị trên trang "Bộ sưu tập ảnh" — tải ảnh lên hàng loạt hoặc dán link, gộp theo chủ đề tự đặt tên. Chủ đề tự biến mất khi ảnh cuối cùng của nó bị xoá.</p>
+          </div>
+        </div>
+
+        <div class="hero-banner-toolbar">
+          <button class="btn-add-primary" id="openAddGalleryBtn">
+            <i class="fa-solid fa-plus"></i>
+            <span>Thêm ảnh</span>
+          </button>
+          <span class="hero-banner-count" id="galleryTopicCount">0 chủ đề</span>
+        </div>
+
+        <div class="hero-banner-grid" id="galleryTopicGrid">
+          <!-- Dynamic topic cards injected via JS -->
         </div>
       </div>
 
@@ -487,6 +516,92 @@
         <button class="btn-add-primary" id="submitAddBannerBtn">
           <i class="fa-solid fa-plus"></i>
           <span>Thêm Slide</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Thêm ảnh vào Bộ sưu tập — có thể tải ảnh lên hàng loạt VÀ dán
+       link ảnh trong cùng 1 lần gửi (cả 2 nguồn được gộp chung vào 1 chủ đề). -->
+  <div class="admin-modal-overlay" id="addGalleryModal">
+    <div class="admin-modal-card">
+      <div class="admin-modal-head">
+        <h2 class="admin-modal-title">
+          <i class="fa-solid fa-panorama" style="color: var(--accent-primary);"></i>
+          <span>Thêm ảnh vào Bộ sưu tập</span>
+        </h2>
+        <button class="admin-modal-close" id="closeAddGalleryModalBtn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="admin-modal-body">
+        <div class="form-group-admin">
+          <label>Chủ đề *</label>
+          <input type="text" id="galleryTopicInput" class="form-input-admin" list="galleryTopicOptionsList" placeholder="Ví dụ: Du lịch, Sự kiện 2026...">
+          <datalist id="galleryTopicOptionsList"></datalist>
+          <p class="source-hint">Gõ tên chủ đề mới để tạo, hoặc chọn 1 chủ đề có sẵn để thêm ảnh vào chung nhóm đó.</p>
+        </div>
+
+        <div class="form-group-admin">
+          <label>Nguồn ảnh * (có thể dùng cả 2 cách cùng lúc)</label>
+          <div class="source-tabs">
+            <button type="button" class="source-tab-btn active" id="galleryTabUpload" data-mode="upload">
+              <i class="fa-solid fa-upload"></i> Tải ảnh lên hàng loạt
+            </button>
+            <button type="button" class="source-tab-btn" id="galleryTabLink" data-mode="link">
+              <i class="fa-solid fa-link"></i> Dán nhiều link ảnh
+            </button>
+          </div>
+
+          <!-- Chế độ: tải nhiều file ảnh cùng lúc -->
+          <div id="galleryPanelUpload" class="source-panel">
+            <label class="file-drop-label" for="galleryImageFilesInput">
+              <i class="fa-solid fa-images"></i>
+              <span id="galleryImageFilesName">Chọn nhiều ảnh (JPG, PNG, WebP...)</span>
+            </label>
+            <input type="file" id="galleryImageFilesInput" accept="image/*" multiple style="display:none;">
+          </div>
+
+          <!-- Chế độ: dán nhiều link ảnh, mỗi dòng 1 link -->
+          <div id="galleryPanelLink" class="source-panel" style="display:none;">
+            <textarea id="galleryLinksInput" class="form-textarea-admin" rows="8" placeholder="Mỗi dòng là 1 link ảnh, ví dụ:&#10;https://.../anh1.jpg&#10;https://.../anh2.jpg"></textarea>
+          </div>
+
+          <p class="source-hint">Tổng số ảnh (file tải lên + link dán) tối đa 40 mỗi lần gửi.</p>
+          <div class="bulk-results" id="galleryBulkResultsBox" style="display:none;"></div>
+        </div>
+      </div>
+
+      <div class="admin-modal-foot">
+        <button class="btn-cancel-admin" id="cancelAddGalleryBtn">Hủy</button>
+        <button class="btn-add-primary" id="submitAddGalleryBtn">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <span>Thêm ảnh</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Quản lý ảnh trong 1 chủ đề — xem & xoá từng ảnh riêng lẻ. -->
+  <div class="admin-modal-overlay" id="galleryManageModal">
+    <div class="admin-modal-card">
+      <div class="admin-modal-head">
+        <h2 class="admin-modal-title">
+          <i class="fa-solid fa-panorama" style="color: var(--accent-primary);"></i>
+          <span id="galleryManageModalTitle">Quản lý ảnh</span>
+        </h2>
+        <button class="admin-modal-close" id="closeGalleryManageModalBtn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="admin-modal-body">
+        <div class="hero-banner-grid" id="galleryManageGrid">
+          <!-- Dynamic photo cards injected via JS -->
+        </div>
+      </div>
+
+      <div class="admin-modal-foot">
+        <button class="btn-cancel-admin" id="deleteGalleryTopicBtn" style="color: var(--accent-primary); border-color: var(--accent-primary);">
+          <i class="fa-solid fa-trash"></i>
+          <span>Xoá cả chủ đề này</span>
         </button>
       </div>
     </div>
