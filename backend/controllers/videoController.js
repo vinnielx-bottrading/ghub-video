@@ -3,10 +3,28 @@ const fs = require('fs');
 const path = require('path');
 const { resolveVideoSource, detectSourceType, fetchTitleForResolved } = require('../utils/videoSource');
 const { extractThumbnailFromVideo, extractPreviewGif } = require('../utils/thumbnailExtractor');
+const { isCloudStorageConfigured, providerLabel, uploadLocalFile, deleteFile, extractKeyFromPublicUrl } = require('../utils/cloudStorage');
 
 const THUMBNAILS_DIR = path.join(__dirname, '..', 'uploads', 'thumbnails');
 const MAX_BULK_ITEMS = 50;
 const BULK_CONCURRENCY = 4;
+
+// Với 1 file vừa được lưu tạm cục bộ (do multer hoặc ffmpeg tạo ra trong
+// backend/uploads/<subdir>/), trả về URL công khai để lưu vào MongoDB: ưu
+// tiên đẩy lên dịch vụ lưu trữ ngoài (Backblaze B2 hoặc Cloudflare R2) nếu đã
+// cấu hình đủ biến môi trường (ảnh/video sẽ tồn tại vĩnh viễn qua mọi lần
+// deploy) — nếu chưa cấu hình hoặc upload lỗi, rơi về URL cục bộ như cũ
+// (hostUrl + /uploads/...), chấp nhận rủi ro mất file khi server deploy lại
+// thay vì chặn hẳn thao tác của admin.
+async function resolveMediaUrl(localFilename, subdir, hostUrl) {
+  if (isCloudStorageConfigured()) {
+    const localPath = path.join(__dirname, '..', 'uploads', subdir, localFilename);
+    const cloudUrl = await uploadLocalFile(localPath, `${subdir}/${localFilename}`);
+    if (cloudUrl) return cloudUrl;
+    console.warn(`⚠️  Không đẩy được "${localFilename}" lên ${providerLabel()} — tạm dùng URL cục bộ (có thể mất khi deploy lại).`);
+  }
+  return `${hostUrl}/uploads/${subdir}/${localFilename}`;
+}
 
 // POST /api/videos/detect-source — admin dán link/mã nhúng, trả về preview
 // (platform, embedUrl, thumbnail tự suy nếu có) TRƯỚC khi tạo video thật.
@@ -34,7 +52,7 @@ exports.uploadThumbnailSnip = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Không nhận được ảnh đã chụp.' });
     }
     const hostUrl = `${req.protocol}://${req.get('host')}`;
-    const url = `${hostUrl}/uploads/thumbnails/${req.file.filename}`;
+    const url = await resolveMediaUrl(req.file.filename, 'thumbnails', hostUrl);
     res.json({ success: true, url });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -135,19 +153,24 @@ exports.createVideo = async (req, res) => {
       sourceType = 'upload';
       platform = 'upload';
       const uploadedVideoPath = req.files.video[0].path;
-      videoUrl = `${hostUrl}/uploads/videos/${req.files.video[0].filename}`;
+      const uploadedVideoFilename = req.files.video[0].filename;
 
       if (req.files.thumbnail?.[0]) {
-        thumbnail = `${hostUrl}/uploads/thumbnails/${req.files.thumbnail[0].filename}`;
+        thumbnail = await resolveMediaUrl(req.files.thumbnail[0].filename, 'thumbnails', hostUrl);
       } else if (!thumbnail) {
         const autoFile = await extractThumbnailFromVideo(uploadedVideoPath, THUMBNAILS_DIR);
-        if (autoFile) thumbnail = `${hostUrl}/uploads/thumbnails/${autoFile}`;
+        if (autoFile) thumbnail = await resolveMediaUrl(autoFile, 'thumbnails', hostUrl);
       }
 
       // File tải lên đọc được trực tiếp từ đĩa — luôn thử trích thêm 1 đoạn
       // GIF ngắn làm ảnh xem trước khi rê chuột (không chặn nếu thất bại).
       const gifFile = await extractPreviewGif(uploadedVideoPath, THUMBNAILS_DIR);
-      if (gifFile) previewGif = `${hostUrl}/uploads/thumbnails/${gifFile}`;
+      if (gifFile) previewGif = await resolveMediaUrl(gifFile, 'thumbnails', hostUrl);
+
+      // Video gốc đẩy lên R2 SAU CÙNG — ffmpeg ở trên cần đọc trực tiếp file
+      // này từ ổ đĩa cục bộ để trích ảnh bìa/GIF trước khi file bị xoá đi
+      // ngay sau khi upload lên R2 thành công.
+      videoUrl = await resolveMediaUrl(uploadedVideoFilename, 'videos', hostUrl);
     } else if (req.body.sourceInput?.trim()) {
       // --- Cách 2: Dán link / share link / mã nhúng iframe ---
       const resolved = await resolveVideoSource(req.body.sourceInput);
@@ -168,7 +191,7 @@ exports.createVideo = async (req, res) => {
       // tự làm cho video "Tải file lên" (đọc từ đĩa cục bộ, nhanh & ổn định).
       if (sourceType === 'direct' && !thumbnail) {
         const autoFile = await extractThumbnailFromVideo(videoUrl, THUMBNAILS_DIR);
-        if (autoFile) thumbnail = `${hostUrl}/uploads/thumbnails/${autoFile}`;
+        if (autoFile) thumbnail = await resolveMediaUrl(autoFile, 'thumbnails', hostUrl);
       }
     } else if (videoUrl) {
       // --- Cách 3: Tương thích ngược — videoUrl gửi thẳng như phiên bản cũ ---
@@ -182,7 +205,7 @@ exports.createVideo = async (req, res) => {
 
         if (sourceType === 'direct' && !thumbnail) {
           const autoFile = await extractThumbnailFromVideo(videoUrl, THUMBNAILS_DIR);
-          if (autoFile) thumbnail = `${hostUrl}/uploads/thumbnails/${autoFile}`;
+          if (autoFile) thumbnail = await resolveMediaUrl(autoFile, 'thumbnails', hostUrl);
         }
       }
     }
@@ -366,7 +389,7 @@ async function processBulkLine(rawLine, index, sharedFields, hostUrl) {
   let thumbnail = resolved.thumbnail || '';
   if (resolved.sourceType === 'direct' && !thumbnail) {
     const autoFile = await extractThumbnailFromVideo(resolved.videoUrl, THUMBNAILS_DIR);
-    if (autoFile) thumbnail = `${hostUrl}/uploads/thumbnails/${autoFile}`;
+    if (autoFile) thumbnail = await resolveMediaUrl(autoFile, 'thumbnails', hostUrl);
   }
   // Không tự tạo ảnh giả lập nữa — để trống nếu không suy ra được ảnh thật.
 
@@ -472,10 +495,15 @@ exports.deleteVideo = async (req, res) => {
     // "Chọn từ Video" copy nguyên URL ảnh lúc tạo slide), xoá theo video sẽ
     // làm vỡ ảnh Hero Banner. Ảnh giờ được quản lý độc lập trong "Thư viện
     // ảnh" (mediaController.js) — admin tự xoá ảnh không dùng nữa ở đó.
-    if (video.videoUrl && video.videoUrl.includes('/uploads/')) {
-      const relative = video.videoUrl.split('/uploads/')[1];
-      const filePath = path.join(__dirname, '..', 'uploads', relative);
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    if (video.videoUrl) {
+      const cloudKey = extractKeyFromPublicUrl(video.videoUrl);
+      if (cloudKey) {
+        await deleteFile(cloudKey);
+      } else if (video.videoUrl.includes('/uploads/')) {
+        const relative = video.videoUrl.split('/uploads/')[1];
+        const filePath = path.join(__dirname, '..', 'uploads', relative);
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      }
     }
 
     res.json({ success: true, message: 'Đã xóa video thành công' });

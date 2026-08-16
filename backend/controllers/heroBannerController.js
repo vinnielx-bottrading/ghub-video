@@ -1,7 +1,23 @@
 const HeroBanner = require('../models/HeroBanner');
 const Video = require('../models/Video');
+const path = require('path');
+const { isCloudStorageConfigured, providerLabel, uploadLocalFile } = require('../utils/cloudStorage');
 
 const MAX_HERO_BANNERS = 10;
+
+// Ảnh tải lên cho Hero Banner cũng ưu tiên đẩy lên dịch vụ lưu trữ ngoài
+// (Backblaze B2 hoặc Cloudflare R2, nếu đã cấu hình) để không bị mất khi
+// Render deploy lại — xem giải thích đầy đủ trong backend/utils/cloudStorage.js
+// và videoController.js#resolveMediaUrl.
+async function resolveBannerImageUrl(file, hostUrl) {
+  if (isCloudStorageConfigured()) {
+    const localPath = path.join(__dirname, '..', 'uploads', 'thumbnails', file.filename);
+    const cloudUrl = await uploadLocalFile(localPath, `thumbnails/${file.filename}`);
+    if (cloudUrl) return cloudUrl;
+    console.warn(`⚠️  Không đẩy được ảnh Hero Banner "${file.filename}" lên ${providerLabel()} — tạm dùng URL cục bộ.`);
+  }
+  return `${hostUrl}/uploads/thumbnails/${file.filename}`;
+}
 
 // GET /api/hero-banners — công khai, trang chủ dùng để dựng slideshow.
 // Populate đầy đủ video được gắn (nếu có) để bấm vào banner mở được video
@@ -35,7 +51,7 @@ exports.createHeroBanner = async (req, res) => {
 
     if (req.file) {
       const hostUrl = `${req.protocol}://${req.get('host')}`;
-      image = `${hostUrl}/uploads/thumbnails/${req.file.filename}`;
+      image = await resolveBannerImageUrl(req.file, hostUrl);
     } else if (req.body.videoId) {
       const video = await Video.findById(req.body.videoId);
       if (!video) {
@@ -78,7 +94,7 @@ exports.updateHeroBanner = async (req, res) => {
     }
     if (req.file) {
       const hostUrl = `${req.protocol}://${req.get('host')}`;
-      update.image = `${hostUrl}/uploads/thumbnails/${req.file.filename}`;
+      update.image = await resolveBannerImageUrl(req.file, hostUrl);
     } else if (req.body.imageUrl?.trim()) {
       update.image = req.body.imageUrl.trim();
     }

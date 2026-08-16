@@ -114,6 +114,17 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Nhắc admin biết đang lưu ảnh/video tải lên ở đâu — Backblaze B2 hoặc
+// Cloudflare R2 (vĩnh viễn) nếu đã cấu hình đủ biến môi trường, hoặc ổ đĩa
+// tạm thời của server (mất khi deploy lại) nếu chưa. Xem hướng dẫn cấu hình
+// trong README.
+const { isCloudStorageConfigured, providerLabel } = require('./utils/cloudStorage');
+if (!isCloudStorageConfigured()) {
+  console.warn('⚠️  Chưa cấu hình lưu trữ ngoài (Cloudinary/Backblaze B2/Cloudflare R2) — ảnh/video tải lên đang lưu tạm trên ổ đĩa server và SẼ MẤT khi deploy lại. Xem mục "Lưu Trữ Ảnh Vĩnh Viễn" trong README.md để khắc phục (khuyên dùng Cloudinary — không cần thẻ, dễ cấu hình nhất).');
+} else {
+  console.log(`✅ Đã cấu hình ${providerLabel()} — ảnh/video tải lên sẽ được lưu vĩnh viễn, không mất khi deploy lại.`);
+}
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`\n🚀 GHUB X Server: http://localhost:${PORT}`);
