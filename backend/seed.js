@@ -18,8 +18,7 @@ const SAMPLE_VIDEOS = [
     quality: "4K 60fps",
     category: "Khoa học & Vũ trụ",
     tags: ["universe", "blackhole", "science", "4k"],
-    isHeroSpotlight: true,
-    badges: ["4K ULTRA HD", "60 FPS", "THỊNH HÀNH #1"],
+    badges: ["THỊNH HÀNH #1"],
     likes: 125000,
     channel: {
       name: "Cosmos Odyssey",

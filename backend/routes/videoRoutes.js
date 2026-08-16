@@ -4,7 +4,6 @@ const upload = require('../middleware/upload');
 const { requireAdminApi } = require('../middleware/adminAuth');
 const {
   getVideos,
-  getHeroVideo,
   getVideoById,
   createVideo,
   updateVideo,
@@ -17,9 +16,9 @@ const {
   uploadThumbnailSnip
 } = require('../controllers/videoController');
 
-// Routes danh mục & Hero
+// Routes danh mục. (Hero Banner giờ có route riêng: /api/hero-banners — xem
+// heroBannerRoutes.js — không còn gắn vào từng video nữa.)
 router.get('/categories', getCategories);
-router.get('/hero', getHeroVideo);
 
 // Nhận diện & xem trước nguồn video (link/mã nhúng) trước khi tạo — chỉ Admin.
 // Đặt trước router.route('/:id') để không bị hiểu nhầm là 1 ID.

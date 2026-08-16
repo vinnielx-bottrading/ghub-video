@@ -50,9 +50,13 @@
     <!-- Sidebar Navigation -->
     <aside class="admin-sidebar">
       <div class="admin-nav-group">
-        <a href="#" class="admin-nav-item active">
+        <a href="#" class="admin-nav-item active" id="navSectionVideos">
           <i class="fa-solid fa-film"></i>
           <span>Quản lý Video</span>
+        </a>
+        <a href="#" class="admin-nav-item" id="navSectionHeroBanner">
+          <i class="fa-solid fa-images"></i>
+          <span>Hero Banner</span>
         </a>
         <a href="#" class="admin-nav-item">
           <i class="fa-solid fa-chart-line"></i>
@@ -79,7 +83,10 @@
 
     <!-- Main Content Area -->
     <main class="admin-main">
-      
+
+      <!-- Mục: Quản lý Video (mặc định hiện) -->
+      <div id="videoManagementSection">
+
       <!-- Top Title -->
       <div class="admin-title-row">
         <div>
@@ -149,7 +156,6 @@
               <th>Thể loại</th>
               <th>Lượt xem</th>
               <th>Lượt thích</th>
-              <th style="text-align: center;">Hero Banner</th>
               <th style="width: 110px;">Thao tác</th>
             </tr>
           </thead>
@@ -157,6 +163,31 @@
             <!-- Dynamic rows injected via JS -->
           </tbody>
         </table>
+      </div>
+
+      </div>
+      <!-- /videoManagementSection -->
+
+      <!-- Mục: Hero Banner (ẩn mặc định, quản lý riêng, KHÔNG gắn vào từng video) -->
+      <div id="heroBannerSection" style="display:none;">
+        <div class="admin-title-row">
+          <div>
+            <h1 class="admin-headline">Hero Banner (Slideshow Trang Chủ)</h1>
+            <p class="admin-subheadline">Tối đa 10 slide, chỉ hình ảnh — không có chữ đè lên. Mỗi slide có thể là ảnh dán link/tải lên, hoặc lấy từ 1 video có sẵn (bấm vào sẽ mở video đó).</p>
+          </div>
+        </div>
+
+        <div class="hero-banner-toolbar">
+          <button class="btn-add-primary" id="openAddBannerBtn">
+            <i class="fa-solid fa-plus"></i>
+            <span>Thêm Slide</span>
+          </button>
+          <span class="hero-banner-count" id="heroBannerCount">0 / 10 slide</span>
+        </div>
+
+        <div class="hero-banner-grid" id="heroBannerGrid">
+          <!-- Dynamic slide cards injected via JS -->
+        </div>
       </div>
 
     </main>
@@ -239,14 +270,6 @@
             <input type="checkbox" id="editVerifiedCheckbox" style="accent-color: var(--accent-primary); width: 16px; height: 16px;">
             <span>Kênh có tích xanh (Verified)</span>
           </label>
-          <label style="display: flex; align-items: center; gap: 8px; font-size: 0.88rem; cursor: pointer; color: #fff;">
-            <input type="checkbox" id="editHeroCheckbox" style="accent-color: var(--accent-primary); width: 16px; height: 16px;">
-            <span>Đặt làm Hero Banner (Slideshow trang chủ)</span>
-          </label>
-          <div style="display:flex; align-items:center; gap:8px;">
-            <label style="font-size: 0.82rem; color: var(--text-tertiary); white-space:nowrap;" for="editHeroOrderInput">Thứ tự (số nhỏ hiện trước)</label>
-            <input type="number" id="editHeroOrderInput" class="form-input-admin" placeholder="0" style="width: 80px; padding: 6px 10px;">
-          </div>
         </div>
       </div>
 
@@ -357,17 +380,6 @@
           <label>Thẻ tags</label>
           <input type="text" id="addTagsInput" class="form-input-admin" placeholder="ví dụ: 4k, tech, tutorial...">
         </div>
-
-        <div id="addHeroGroup" style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
-          <label style="display: flex; align-items: center; gap: 8px; font-size: 0.88rem; cursor: pointer; color: #fff;">
-            <input type="checkbox" id="addHeroCheckbox" style="accent-color: var(--accent-primary); width: 16px; height: 16px;">
-            <span>Đặt làm Hero Banner (Slideshow trang chủ)</span>
-          </label>
-          <div style="display:flex; align-items:center; gap:8px;">
-            <label style="font-size: 0.82rem; color: var(--text-tertiary); white-space:nowrap;" for="addHeroOrderInput">Thứ tự (số nhỏ hiện trước)</label>
-            <input type="number" id="addHeroOrderInput" class="form-input-admin" placeholder="0" style="width: 80px; padding: 6px 10px;">
-          </div>
-        </div>
       </div>
 
       <div class="admin-modal-foot">
@@ -375,6 +387,68 @@
         <button class="btn-add-primary" id="submitAddBtn">
           <i class="fa-solid fa-cloud-arrow-up"></i>
           <span>Tạo Video Mới</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Thêm Slide Hero Banner -->
+  <div class="admin-modal-overlay" id="addBannerModal">
+    <div class="admin-modal-card">
+      <div class="admin-modal-head">
+        <h2 class="admin-modal-title">
+          <i class="fa-solid fa-images" style="color: var(--accent-primary);"></i>
+          <span>Thêm Slide Hero Banner</span>
+        </h2>
+        <button class="admin-modal-close" id="closeAddBannerModalBtn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="admin-modal-body">
+        <div class="form-group-admin">
+          <label>Nguồn ảnh banner *</label>
+          <div class="source-tabs">
+            <button type="button" class="source-tab-btn active" id="bannerTabLink" data-mode="link">
+              <i class="fa-solid fa-link"></i> Dán link ảnh
+            </button>
+            <button type="button" class="source-tab-btn" id="bannerTabUpload" data-mode="upload">
+              <i class="fa-solid fa-upload"></i> Tải ảnh lên
+            </button>
+            <button type="button" class="source-tab-btn" id="bannerTabVideo" data-mode="video">
+              <i class="fa-solid fa-film"></i> Chọn từ Video
+            </button>
+          </div>
+
+          <!-- Chế độ: dán link ảnh banner có sẵn -->
+          <div id="bannerPanelLink" class="source-panel">
+            <input type="text" id="bannerImageUrlInput" class="form-input-admin" placeholder="https://... (link ảnh banner)">
+            <p class="source-hint">Slide chỉ hiển thị ảnh, không gắn video — bấm vào sẽ không mở video nào.</p>
+          </div>
+
+          <!-- Chế độ: tải file ảnh banner từ máy -->
+          <div id="bannerPanelUpload" class="source-panel" style="display:none;">
+            <label class="file-drop-label" for="bannerImageFileInput">
+              <i class="fa-solid fa-image"></i>
+              <span id="bannerImageFileName">Chọn ảnh banner (JPG, PNG, WebP...)</span>
+            </label>
+            <input type="file" id="bannerImageFileInput" accept="image/*" style="display:none;">
+            <p class="source-hint">Slide chỉ hiển thị ảnh, không gắn video — bấm vào sẽ không mở video nào.</p>
+          </div>
+
+          <!-- Chế độ: lấy thumbnail từ 1 video có sẵn — bấm vào slide sẽ mở video đó -->
+          <div id="bannerPanelVideo" class="source-panel" style="display:none;">
+            <input type="text" id="bannerVideoSearchInput" class="form-input-admin" placeholder="🔍 Tìm video theo tên...">
+            <div class="hero-banner-video-picker" id="bannerVideoPicker">
+              <!-- Danh sách video để chọn, injected via JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-modal-foot">
+        <button class="btn-cancel-admin" id="cancelAddBannerBtn">Hủy</button>
+        <button class="btn-add-primary" id="submitAddBannerBtn">
+          <i class="fa-solid fa-plus"></i>
+          <span>Thêm Slide</span>
         </button>
       </div>
     </div>

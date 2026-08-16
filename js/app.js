@@ -30,14 +30,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const sidebarCategoryList = document.getElementById('sidebarCategoryList');
   const toastContainer = document.getElementById('toastContainer');
 
-  // Hero Spotlight Elements (dạng slideshow — xem initHero()/renderHeroSlide())
+  // Hero Banner Elements (slideshow ảnh thuần túy, không chữ — nội dung lấy
+  // từ GET /api/hero-banners, do Admin toàn quyền quản lý trong trang quản
+  // trị, xem initHero()/renderHeroSlideContent()).
   const heroSpotlight = document.getElementById('heroSpotlight');
   const heroBackdrop = document.getElementById('heroBackdrop');
-  const heroContent = document.querySelector('.hero-content');
-  const heroTitle = document.getElementById('heroTitle');
-  const heroDesc = document.getElementById('heroDesc');
-  const heroPlayBtn = document.getElementById('heroPlayBtn');
-  const heroSaveBtn = document.getElementById('heroSaveBtn');
   const heroSlideNav = document.getElementById('heroSlideNav');
   const heroPrevBtn = document.getElementById('heroPrevBtn');
   const heroNextBtn = document.getElementById('heroNextBtn');
@@ -139,9 +136,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Hero Banner giờ hoàn toàn tách biệt khỏi dữ liệu video — lấy từ mục quản
+  // lý riêng trong trang Admin (GET /api/hero-banners, tối đa 10 slide).
+  let heroBannersData = [];
+  async function fetchHeroBanners() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/hero-banners`);
+      if (response.ok) {
+        const json = await response.json();
+        if (json.success && Array.isArray(json.data)) {
+          heroBannersData = json.data;
+        }
+      }
+    } catch (err) {
+      console.log("ℹ️ Không tải được Hero Banner (backend offline hoặc chưa có dữ liệu).");
+    }
+  }
+
   // ==========================================================================
-  // Hero Spotlight Slideshow — xoay vòng qua tất cả video admin đánh dấu
-  // "Hero Spotlight", sắp theo heroOrder do admin tự đặt trong trang quản trị.
+  // Hero Banner Slideshow — thuần ảnh, không chữ. Nội dung (ảnh + video liên
+  // kết tùy chọn) hoàn toàn do Admin quyết định trong mục "Hero Banner" riêng
+  // biệt của trang quản trị (tối đa 10 slide), KHÔNG còn gắn với dữ liệu
+  // video như trước.
   // ==========================================================================
   let heroSlides = [];
   let heroSlideIndex = 0;
@@ -169,7 +185,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const dot = document.createElement('button');
       dot.type = 'button';
       dot.className = `hero-dot ${i === heroSlideIndex ? 'active' : ''}`;
-      dot.title = `Video ${i + 1}`;
+      dot.title = `Slide ${i + 1}`;
       dot.addEventListener('click', (e) => {
         e.stopPropagation();
         goToHeroSlide(i);
@@ -179,36 +195,27 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Chuyển ảnh nền/nội dung sang slide hiện tại với hiệu ứng crossfade nhẹ
-  // (thay vì đổi đột ngột), đồng thời gắn lại các hành động Xem ngay/Lưu.
+  // Chuyển ảnh nền sang slide hiện tại với hiệu ứng crossfade nhẹ. Slide chỉ
+  // có ảnh tĩnh (không gắn video) thì không có hành động khi bấm; slide có
+  // gắn video thì bấm vào sẽ mở thẳng video đó.
   function renderHeroSlideContent() {
     const heroData = heroSlides[heroSlideIndex];
     if (!heroData) return;
 
     heroBackdrop.classList.add('fading');
-    if (heroContent) heroContent.classList.add('fading');
 
     setTimeout(() => {
-      heroBackdrop.style.backgroundImage = `url('${heroData.thumbnail}')`;
-      heroTitle.textContent = heroData.title;
-      heroDesc.textContent = heroData.description || '';
+      heroBackdrop.style.backgroundImage = `url('${heroData.image}')`;
       heroBackdrop.classList.remove('fading');
-      if (heroContent) heroContent.classList.remove('fading');
     }, 220);
 
-    heroPlayBtn.onclick = (e) => {
-      e.stopPropagation();
-      openWatchView(heroData);
-    };
-
-    heroSaveBtn.onclick = (e) => {
-      e.stopPropagation();
-      showToast("Đã lưu video nổi bật vào danh sách 'Xem sau'!", "success");
-    };
-
-    heroSpotlight.onclick = () => {
-      openWatchView(heroData);
-    };
+    if (heroData.video) {
+      heroSpotlight.classList.add('is-clickable');
+      heroSpotlight.onclick = () => openWatchView(heroData.video);
+    } else {
+      heroSpotlight.classList.remove('is-clickable');
+      heroSpotlight.onclick = null;
+    }
 
     renderHeroDots();
   }
@@ -220,25 +227,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function initHero() {
-    // Ưu tiên các video admin đánh dấu Hero Spotlight (có thể nhiều video —
-    // sẽ trình chiếu dạng slideshow), sắp theo heroOrder rồi tới thứ tự tạo.
-    // Nếu chưa video nào được đánh dấu, fallback về video xem nhiều nhất để
-    // trang chủ không bị trống. Nếu hoàn toàn chưa có video nào (DB trống),
-    // ẩn hẳn Hero Banner — KHÔNG còn hiển thị dữ liệu mẫu/giả nữa.
+    // Hero Banner giờ lấy dữ liệu hoàn toàn từ heroBannersData (mục "Hero
+    // Banner" riêng trong Admin), không còn liên quan tới isHeroSpotlight
+    // hay video xem nhiều nhất như trước. Chưa có slide nào (Admin chưa
+    // thêm) thì ẩn hẳn khu vực này — không hiển thị dữ liệu mẫu/giả.
     stopHeroAutoRotate();
 
-    const marked = videosData
-      .filter(v => v.isHeroSpotlight)
-      .sort((a, b) => (a.heroOrder || 0) - (b.heroOrder || 0));
-
-    if (marked.length > 0) {
-      heroSlides = marked;
-    } else if (videosData.length > 0) {
-      const topViewed = [...videosData].sort((a, b) => (b.views || 0) - (a.views || 0))[0];
-      heroSlides = topViewed ? [topViewed] : [];
-    } else {
-      heroSlides = [];
-    }
+    heroSlides = [...heroBannersData].sort((a, b) => (a.order || 0) - (b.order || 0));
 
     if (heroSlides.length === 0) {
       heroSpotlight.style.display = 'none';
@@ -371,10 +366,6 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <div class="video-meta-col">
             <h3 class="video-title" title="${video.title}">${video.title}</h3>
-            <div class="video-channel-name">
-              <span>${channel.name}</span>
-              ${channel.verified ? '<i class="fa-solid fa-circle-check verified-icon"></i>' : ''}
-            </div>
             <div class="video-stats">
               <span>${formatNumber(video.views)} lượt xem</span>
               <span>•</span>
@@ -772,7 +763,11 @@ document.addEventListener('DOMContentLoaded', () => {
     syncCategoriesFromVideos();
     renderCategories();
     renderVideos(videosData);
-    initHero();
     openWatchViewFromUrlIfPresent();
+  });
+
+  // Hero Banner tải riêng (độc lập với danh sách video) từ /api/hero-banners.
+  fetchHeroBanners().then(() => {
+    initHero();
   });
 });

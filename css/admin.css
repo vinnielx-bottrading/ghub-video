@@ -443,24 +443,6 @@ body {
   display: inline-block;
 }
 
-.hero-star-btn {
-  background: none;
-  border: none;
-  font-size: 1.2rem;
-  color: var(--text-tertiary);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.hero-star-btn.active {
-  color: #fbbf24;
-  text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
-}
-
-.hero-star-btn:hover {
-  transform: scale(1.2);
-}
-
 .action-buttons-cell {
   display: flex;
   align-items: center;
@@ -869,6 +851,141 @@ body {
   font-size: 0.84rem;
   color: #fff;
   font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   Hero Banner: mục quản lý riêng (không còn gắn vào từng video)
+   ========================================================================== */
+.hero-banner-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.hero-banner-count {
+  font-size: 0.84rem;
+  color: var(--text-tertiary);
+  font-weight: 600;
+}
+
+.hero-banner-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 18px;
+}
+
+.hero-banner-card {
+  position: relative;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border-glass);
+  background: var(--bg-card);
+}
+
+.hero-banner-card-img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  display: block;
+  background: #000;
+}
+
+.hero-banner-card-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.hero-banner-card-badge {
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hero-banner-order-input {
+  width: 56px;
+  padding: 5px 8px;
+  background: var(--bg-pill);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+.hero-banner-card-delete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(8, 9, 13, 0.75);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.hero-banner-card-delete:hover {
+  background: #ef4444;
+}
+
+.hero-banner-video-picker {
+  max-height: 280px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  padding: 8px;
+}
+
+.hero-banner-video-pick-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.hero-banner-video-pick-item:hover {
+  background: var(--bg-pill-hover);
+}
+
+.hero-banner-video-pick-item.selected {
+  background: var(--accent-subtle);
+  outline: 1px solid var(--accent-primary);
+}
+
+.hero-banner-video-pick-item img {
+  width: 64px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: var(--radius-xs);
+  flex-shrink: 0;
+  background: #000;
+}
+
+.hero-banner-video-pick-item span {
+  font-size: 0.84rem;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 

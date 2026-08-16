@@ -7,6 +7,7 @@ const mongoose = require('mongoose');
 const connectDB = require('./config/db');
 const videoRoutes = require('./routes/videoRoutes');
 const authRoutes = require('./routes/authRoutes');
+const heroBannerRoutes = require('./routes/heroBannerRoutes');
 const { requireAdminPage } = require('./middleware/adminAuth');
 
 connectDB();
@@ -28,10 +29,11 @@ app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 // Uploaded video/thumbnail files.
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Chặn sớm mọi request tới /api/videos nếu MongoDB chưa sẵn sàng, để trả lỗi
-// rõ ràng NGAY LẬP TỨC thay vì để request treo/timeout không rõ nguyên nhân
-// (đây chính là lý do trước đây khó biết lỗi đến từ Render hay MongoDB).
-app.use('/api/videos', (req, res, next) => {
+// Chặn sớm mọi request tới /api/videos hoặc /api/hero-banners nếu MongoDB
+// chưa sẵn sàng, để trả lỗi rõ ràng NGAY LẬP TỨC thay vì để request treo/
+// timeout không rõ nguyên nhân (đây chính là lý do trước đây khó biết lỗi
+// đến từ Render hay MongoDB).
+const requireMongoReady = (req, res, next) => {
   if (mongoose.connection.readyState !== 1) {
     return res.status(503).json({
       success: false,
@@ -40,10 +42,13 @@ app.use('/api/videos', (req, res, next) => {
     });
   }
   next();
-});
+};
+app.use('/api/videos', requireMongoReady);
+app.use('/api/hero-banners', requireMongoReady);
 
 // REST API used by index.html and admin.html.
 app.use('/api/videos', videoRoutes);
+app.use('/api/hero-banners', heroBannerRoutes);
 
 // Đăng nhập/đăng xuất Admin.
 app.use('/api/auth', authRoutes);

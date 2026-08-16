@@ -81,30 +81,16 @@
     <!-- Main Content Flow -->
     <main class="main-content">
       
-      <!-- Cinematic Hero Spotlight (Banner nổi bật) — dạng slideshow, xoay
-           vòng qua tất cả video admin đánh dấu "Hero Spotlight" trong trang
-           quản trị. Nội dung được thu gọn và không còn lớp phủ tối nặng như
-           trước để nhìn rõ ảnh nền hơn. -->
-      <section class="hero-spotlight" id="heroSpotlight">
+      <!-- Hero Banner — dạng slideshow ảnh thuần túy, không chữ, không nút.
+           Nội dung (ảnh + video liên kết nếu có) hoàn toàn do Admin quản lý
+           trong trang quản trị (mục "Hero Banner" riêng biệt), lấy dữ liệu
+           từ GET /api/hero-banners. Bấm vào slide sẽ mở video liên kết (nếu
+           có); slide chỉ có ảnh tĩnh thì không có hành động khi bấm. -->
+      <section class="hero-spotlight" id="heroSpotlight" style="display:none;">
         <div class="hero-backdrop" id="heroBackdrop"></div>
-        <div class="hero-overlay-gradient"></div>
-        <div class="hero-content">
-          <h1 class="hero-title" id="heroTitle"></h1>
-          <p class="hero-description" id="heroDesc"></p>
-          <div class="hero-actions">
-            <button class="btn-hero-play" id="heroPlayBtn">
-              <i class="fa-solid fa-play"></i>
-              <span>Xem ngay</span>
-            </button>
-            <button class="btn-hero-secondary" id="heroSaveBtn">
-              <i class="fa-regular fa-bookmark"></i>
-              <span>Lưu vào xem sau</span>
-            </button>
-          </div>
-        </div>
         <div class="hero-slide-nav" id="heroSlideNav" style="display:none;">
-          <button class="hero-nav-arrow hero-nav-prev" id="heroPrevBtn" title="Video trước"><i class="fa-solid fa-chevron-left"></i></button>
-          <button class="hero-nav-arrow hero-nav-next" id="heroNextBtn" title="Video tiếp theo"><i class="fa-solid fa-chevron-right"></i></button>
+          <button class="hero-nav-arrow hero-nav-prev" id="heroPrevBtn" title="Slide trước"><i class="fa-solid fa-chevron-left"></i></button>
+          <button class="hero-nav-arrow hero-nav-next" id="heroNextBtn" title="Slide tiếp theo"><i class="fa-solid fa-chevron-right"></i></button>
         </div>
         <div class="hero-dots" id="heroDots"></div>
       </section>

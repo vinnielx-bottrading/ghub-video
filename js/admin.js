@@ -40,8 +40,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const editLikesInput = document.getElementById('editLikesInput');
   const editChannelNameInput = document.getElementById('editChannelNameInput');
   const editVerifiedCheckbox = document.getElementById('editVerifiedCheckbox');
-  const editHeroCheckbox = document.getElementById('editHeroCheckbox');
-  const editHeroOrderInput = document.getElementById('editHeroOrderInput');
   const saveEditBtn = document.getElementById('saveEditBtn');
   const editDetectSourceBtn = document.getElementById('editDetectSourceBtn');
   const editSourcePreview = document.getElementById('editSourcePreview');
@@ -60,8 +58,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const addDescInput = document.getElementById('addDescInput');
   const addTagsInput = document.getElementById('addTagsInput');
   const addChannelNameInput = document.getElementById('addChannelNameInput');
-  const addHeroCheckbox = document.getElementById('addHeroCheckbox');
-  const addHeroOrderInput = document.getElementById('addHeroOrderInput');
   const submitAddBtn = document.getElementById('submitAddBtn');
 
   // Add Modal — Nguồn video (tabs Link/Nhúng vs Tải file lên vs Thêm hàng loạt)
@@ -88,7 +84,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const addTitleGroup = document.getElementById('addTitleGroup');
   const addThumbnailGroup = document.getElementById('addThumbnailGroup');
   const addDescGroup = document.getElementById('addDescGroup');
-  const addHeroGroup = document.getElementById('addHeroGroup');
 
   let addSourceMode = 'link'; // 'link' | 'upload' | 'bulk'
   let detectedSource = null; // kết quả gần nhất từ /videos/detect-source
@@ -238,7 +233,6 @@ document.addEventListener('DOMContentLoaded', () => {
     filtered.forEach((video, index) => {
       const tr = document.createElement('tr');
       const channelName = (video.channel && video.channel.name) || 'GHUB X Creator';
-      const isHero = video.isHeroSpotlight || false;
       const id = video._id || video.id;
 
       tr.innerHTML = `
@@ -255,11 +249,6 @@ document.addEventListener('DOMContentLoaded', () => {
         <td><span class="category-tag-badge">${video.category || 'Chưa phân loại'}</span></td>
         <td style="font-weight: 600; color: #fff;">${formatNumber(video.views)}</td>
         <td style="color: #fff;"><i class="fa-regular fa-thumbs-up" style="color: var(--accent-primary);"></i> ${formatNumber(video.likes)}</td>
-        <td style="text-align: center;">
-          <button class="hero-star-btn ${isHero ? 'active' : ''}" data-id="${id}" title="${isHero ? 'Đang là Hero Banner' : 'Đặt làm Hero Banner'}">
-            <i class="fa-solid fa-star"></i>
-          </button>
-        </td>
         <td>
           <div class="action-buttons-cell">
             <button class="btn-action-icon edit" data-id="${id}" title="Chỉnh sửa thông tin video">
@@ -273,37 +262,11 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
 
       // Event Listeners for action buttons
-      tr.querySelector('.hero-star-btn').addEventListener('click', () => toggleHeroSpotlight(video));
       tr.querySelector('.btn-action-icon.edit').addEventListener('click', () => openEditModal(video));
       tr.querySelector('.btn-action-icon.delete').addEventListener('click', () => deleteVideo(video));
 
       videoTableBody.appendChild(tr);
     });
-  }
-
-  // ==========================================================================
-  // Action: Toggle Hero Spotlight
-  // ==========================================================================
-  async function toggleHeroSpotlight(video) {
-    const newHeroState = !video.isHeroSpotlight;
-    const id = video._id || video.id;
-
-    try {
-      if (video._id) {
-        const res = await fetch(`${API_BASE_URL}/videos/${id}`, {
-          method: 'PUT',
-          credentials: 'same-origin',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ isHeroSpotlight: newHeroState })
-        });
-        if (redirectIfSessionExpired(res)) return;
-      }
-      video.isHeroSpotlight = newHeroState;
-      renderTable();
-      showToast(newHeroState ? `Đã đặt "${video.title}" làm Hero Banner nổi bật!` : `Đã hủy Hero Banner`);
-    } catch (e) {
-      showToast("Lỗi khi cập nhật Hero Banner", "error");
-    }
   }
 
   // ==========================================================================
@@ -323,8 +286,6 @@ document.addEventListener('DOMContentLoaded', () => {
     editLikesInput.value = video.likes || 0;
     editChannelNameInput.value = channel.name || 'GHUB X Creator';
     editVerifiedCheckbox.checked = channel.verified || false;
-    editHeroCheckbox.checked = video.isHeroSpotlight || false;
-    editHeroOrderInput.value = video.heroOrder || 0;
     editSourcePreview.style.display = 'none';
 
     editModal.classList.add('active');
@@ -412,8 +373,6 @@ document.addEventListener('DOMContentLoaded', () => {
       tags: editTagsInput.value.split(',').map(t => t.trim()).filter(Boolean),
       views: Number(editViewsInput.value) || 0,
       likes: Number(editLikesInput.value) || 0,
-      isHeroSpotlight: editHeroCheckbox.checked,
-      heroOrder: Number(editHeroOrderInput.value) || 0,
       channel: {
         name: editChannelNameInput.value.trim() || 'GHUB X Creator',
         avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
@@ -485,11 +444,10 @@ document.addEventListener('DOMContentLoaded', () => {
     sourcePanelBulk.style.display = isBulk ? 'flex' : 'none';
 
     // Chế độ Thêm hàng loạt: ẩn các field chỉ dùng cho 1 video (tiêu đề,
-    // thumbnail, mô tả, hero) — Thể loại/Kênh/Tags vẫn hiện vì áp dụng chung.
+    // thumbnail, mô tả) — Thể loại/Kênh/Tags vẫn hiện vì áp dụng chung.
     addTitleGroup.style.display = isBulk ? 'none' : '';
     addThumbnailGroup.style.display = isBulk ? 'none' : '';
     addDescGroup.style.display = isBulk ? 'none' : '';
-    addHeroGroup.style.display = isBulk ? 'none' : 'flex';
 
     submitAddBtn.innerHTML = isBulk
       ? '<i class="fa-solid fa-layer-group"></i> <span>Thêm Hàng Loạt</span>'
@@ -573,8 +531,6 @@ document.addEventListener('DOMContentLoaded', () => {
     addDescInput.value = '';
     addTagsInput.value = '';
     addChannelNameInput.value = '';
-    addHeroCheckbox.checked = false;
-    addHeroOrderInput.value = '';
     addVideoFileInput.value = '';
     addVideoFileName.textContent = 'Chọn file video (MP4, WebM, MOV...)';
     bulkSourceInput.value = '';
@@ -675,10 +631,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const commonFields = {
       title,
       category: addCategorySelect.value,
-      description: addDescInput.value.trim() || 'Video chất lượng cao được thêm từ Studio Dashboard.',
+      description: addDescInput.value.trim(),
       tags: addTagsInput.value ? addTagsInput.value.split(',').map(t => t.trim()).filter(Boolean) : ['pro'],
-      isHeroSpotlight: addHeroCheckbox.checked,
-      heroOrder: Number(addHeroOrderInput.value) || 0,
       channelName: addChannelNameInput.value.trim() || 'GHUB X Studio'
     };
     const thumbnailOverride = addThumbnailInput.value.trim();
@@ -958,6 +912,250 @@ document.addEventListener('DOMContentLoaded', () => {
       await fetch(`${API_BASE_URL}/auth/admin/logout`, { method: 'POST', credentials: 'same-origin' });
     } catch (e) {}
     window.location.href = '/admin-login.html';
+  });
+
+  // ==========================================================================
+  // Mục Hero Banner — quản lý RIÊNG (không còn gắn vào từng video như trước).
+  // Tối đa 10 slide, chỉ ảnh (không chữ). Mỗi slide: dán link ảnh / tải ảnh
+  // lên / chọn 1 video có sẵn (lấy thumbnail làm ảnh, bấm slide mở video đó).
+  // ==========================================================================
+  const navSectionVideos = document.getElementById('navSectionVideos');
+  const navSectionHeroBanner = document.getElementById('navSectionHeroBanner');
+  const videoManagementSection = document.getElementById('videoManagementSection');
+  const heroBannerSection = document.getElementById('heroBannerSection');
+  const openAddBannerBtn = document.getElementById('openAddBannerBtn');
+  const heroBannerCount = document.getElementById('heroBannerCount');
+  const heroBannerGrid = document.getElementById('heroBannerGrid');
+
+  const addBannerModal = document.getElementById('addBannerModal');
+  const closeAddBannerModalBtn = document.getElementById('closeAddBannerModalBtn');
+  const cancelAddBannerBtn = document.getElementById('cancelAddBannerBtn');
+  const submitAddBannerBtn = document.getElementById('submitAddBannerBtn');
+  const bannerTabLink = document.getElementById('bannerTabLink');
+  const bannerTabUpload = document.getElementById('bannerTabUpload');
+  const bannerTabVideo = document.getElementById('bannerTabVideo');
+  const bannerPanelLink = document.getElementById('bannerPanelLink');
+  const bannerPanelUpload = document.getElementById('bannerPanelUpload');
+  const bannerPanelVideo = document.getElementById('bannerPanelVideo');
+  const bannerImageUrlInput = document.getElementById('bannerImageUrlInput');
+  const bannerImageFileInput = document.getElementById('bannerImageFileInput');
+  const bannerImageFileName = document.getElementById('bannerImageFileName');
+  const bannerVideoSearchInput = document.getElementById('bannerVideoSearchInput');
+  const bannerVideoPicker = document.getElementById('bannerVideoPicker');
+
+  const MAX_HERO_BANNERS = 10;
+  let heroBanners = [];
+  let bannerMode = 'link'; // 'link' | 'upload' | 'video'
+  let selectedBannerVideoId = null;
+
+  function switchAdminSection(section) {
+    const isHero = section === 'hero';
+    navSectionVideos.classList.toggle('active', !isHero);
+    navSectionHeroBanner.classList.toggle('active', isHero);
+    videoManagementSection.style.display = isHero ? 'none' : '';
+    heroBannerSection.style.display = isHero ? '' : 'none';
+  }
+  navSectionVideos.addEventListener('click', (e) => { e.preventDefault(); switchAdminSection('videos'); });
+  navSectionHeroBanner.addEventListener('click', (e) => {
+    e.preventDefault();
+    switchAdminSection('hero');
+    loadHeroBanners();
+  });
+
+  async function loadHeroBanners() {
+    try {
+      const res = await fetch(`${API_BASE_URL}/hero-banners`);
+      const json = await res.json().catch(() => null);
+      heroBanners = (res.ok && json?.success) ? json.data : [];
+    } catch (e) {
+      heroBanners = [];
+    }
+    renderHeroBannerGrid();
+  }
+
+  function renderHeroBannerGrid() {
+    heroBannerCount.textContent = `${heroBanners.length} / ${MAX_HERO_BANNERS} slide`;
+    openAddBannerBtn.disabled = heroBanners.length >= MAX_HERO_BANNERS;
+    heroBannerGrid.innerHTML = '';
+
+    if (heroBanners.length === 0) {
+      heroBannerGrid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color: var(--text-tertiary);">Chưa có slide nào — bấm "Thêm Slide" để bắt đầu.</div>`;
+      return;
+    }
+
+    heroBanners.forEach(banner => {
+      const card = document.createElement('div');
+      card.className = 'hero-banner-card';
+      const badgeText = banner.video ? `🎬 Gắn video: ${banner.video.title}` : 'Ảnh tĩnh (không gắn video)';
+      card.innerHTML = `
+        <img src="${banner.image}" class="hero-banner-card-img" alt="Hero Banner slide">
+        <button class="hero-banner-card-delete" title="Xóa slide"><i class="fa-solid fa-trash"></i></button>
+        <div class="hero-banner-card-info">
+          <span class="hero-banner-card-badge" title="${badgeText}">${badgeText}</span>
+          <input type="number" class="hero-banner-order-input" value="${banner.order || 0}" title="Thứ tự (số nhỏ hiện trước)">
+        </div>
+      `;
+      card.querySelector('.hero-banner-card-delete').addEventListener('click', () => deleteHeroBanner(banner));
+      card.querySelector('.hero-banner-order-input').addEventListener('change', (e) => updateHeroBannerOrder(banner, e.target.value));
+      heroBannerGrid.appendChild(card);
+    });
+  }
+
+  async function deleteHeroBanner(banner) {
+    const isConfirm = confirm('Xóa slide Hero Banner này?');
+    if (!isConfirm) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/hero-banners/${banner._id}`, { method: 'DELETE', credentials: 'same-origin' });
+      if (redirectIfSessionExpired(res)) return;
+      heroBanners = heroBanners.filter(b => b._id !== banner._id);
+      renderHeroBannerGrid();
+      showToast('Đã xóa slide Hero Banner');
+    } catch (e) {
+      showToast('Lỗi khi xóa slide', 'error');
+    }
+  }
+
+  async function updateHeroBannerOrder(banner, newOrder) {
+    try {
+      const res = await fetch(`${API_BASE_URL}/hero-banners/${banner._id}`, {
+        method: 'PUT',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order: Number(newOrder) || 0 })
+      });
+      if (redirectIfSessionExpired(res)) return;
+      const json = await res.json().catch(() => null);
+      if (json?.success) {
+        banner.order = json.data.order;
+        showToast('Đã cập nhật thứ tự slide');
+      }
+    } catch (e) {
+      showToast('Lỗi khi cập nhật thứ tự', 'error');
+    }
+  }
+
+  function switchBannerMode(mode) {
+    bannerMode = mode;
+    bannerTabLink.classList.toggle('active', mode === 'link');
+    bannerTabUpload.classList.toggle('active', mode === 'upload');
+    bannerTabVideo.classList.toggle('active', mode === 'video');
+    bannerPanelLink.style.display = mode === 'link' ? 'flex' : 'none';
+    bannerPanelUpload.style.display = mode === 'upload' ? 'flex' : 'none';
+    bannerPanelVideo.style.display = mode === 'video' ? 'flex' : 'none';
+    if (mode === 'video') renderBannerVideoPicker();
+  }
+  bannerTabLink.addEventListener('click', () => switchBannerMode('link'));
+  bannerTabUpload.addEventListener('click', () => switchBannerMode('upload'));
+  bannerTabVideo.addEventListener('click', () => switchBannerMode('video'));
+
+  bannerImageFileInput.addEventListener('change', () => {
+    const file = bannerImageFileInput.files[0];
+    bannerImageFileName.textContent = file ? file.name : 'Chọn ảnh banner (JPG, PNG, WebP...)';
+  });
+
+  // Danh sách video để chọn khi ở chế độ "Chọn từ Video" — tái dùng allVideos
+  // đã tải sẵn cho bảng quản lý, không cần gọi API riêng.
+  function renderBannerVideoPicker() {
+    const query = bannerVideoSearchInput.value.trim().toLowerCase();
+    const filtered = allVideos.filter(v => !query || v.title.toLowerCase().includes(query));
+    bannerVideoPicker.innerHTML = '';
+    if (filtered.length === 0) {
+      bannerVideoPicker.innerHTML = `<div style="padding:10px; color:var(--text-tertiary); font-size:0.84rem;">Không tìm thấy video nào.</div>`;
+      return;
+    }
+    filtered.forEach(v => {
+      const id = v._id || v.id;
+      const item = document.createElement('div');
+      item.className = `hero-banner-video-pick-item ${selectedBannerVideoId === id ? 'selected' : ''}`;
+      item.innerHTML = `<img src="${v.thumbnail}" alt="">
+        <span>${v.title}</span>`;
+      item.addEventListener('click', () => {
+        selectedBannerVideoId = id;
+        renderBannerVideoPicker();
+      });
+      bannerVideoPicker.appendChild(item);
+    });
+  }
+  bannerVideoSearchInput.addEventListener('input', renderBannerVideoPicker);
+
+  function openAddBannerModal() {
+    if (heroBanners.length >= MAX_HERO_BANNERS) {
+      showToast(`Đã đạt tối đa ${MAX_HERO_BANNERS} slide Hero Banner.`, 'error');
+      return;
+    }
+    bannerImageUrlInput.value = '';
+    bannerImageFileInput.value = '';
+    bannerImageFileName.textContent = 'Chọn ảnh banner (JPG, PNG, WebP...)';
+    bannerVideoSearchInput.value = '';
+    selectedBannerVideoId = null;
+    switchBannerMode('link');
+    addBannerModal.classList.add('active');
+  }
+  function closeAddBannerModal() {
+    addBannerModal.classList.remove('active');
+  }
+  openAddBannerBtn.addEventListener('click', openAddBannerModal);
+  closeAddBannerModalBtn.addEventListener('click', closeAddBannerModal);
+  cancelAddBannerBtn.addEventListener('click', closeAddBannerModal);
+
+  submitAddBannerBtn.addEventListener('click', async () => {
+    let requestOptions;
+
+    if (bannerMode === 'upload') {
+      const file = bannerImageFileInput.files[0];
+      if (!file) {
+        showToast('Vui lòng chọn 1 ảnh để tải lên.', 'error');
+        return;
+      }
+      const formData = new FormData();
+      formData.append('thumbnail', file);
+      requestOptions = { method: 'POST', credentials: 'same-origin', body: formData };
+    } else if (bannerMode === 'video') {
+      if (!selectedBannerVideoId) {
+        showToast('Vui lòng chọn 1 video từ danh sách.', 'error');
+        return;
+      }
+      requestOptions = {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoId: selectedBannerVideoId })
+      };
+    } else {
+      const url = bannerImageUrlInput.value.trim();
+      if (!url) {
+        showToast('Vui lòng dán link ảnh banner.', 'error');
+        return;
+      }
+      requestOptions = {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrl: url })
+      };
+    }
+
+    submitAddBannerBtn.disabled = true;
+    submitAddBannerBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang thêm...';
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/hero-banners`, requestOptions);
+      if (redirectIfSessionExpired(res)) return;
+      const json = await res.json().catch(() => null);
+      if (res.ok && json?.success) {
+        heroBanners.push(json.data);
+        renderHeroBannerGrid();
+        closeAddBannerModal();
+        showToast('🎉 Đã thêm slide Hero Banner!');
+      } else {
+        showToast(json?.message || 'Có lỗi khi thêm slide.', 'error');
+      }
+    } catch (e) {
+      showToast('Không thể kết nối tới server.', 'error');
+    } finally {
+      submitAddBannerBtn.disabled = false;
+      submitAddBannerBtn.innerHTML = '<i class="fa-solid fa-plus"></i> <span>Thêm Slide</span>';
+    }
   });
 
   // Initialize

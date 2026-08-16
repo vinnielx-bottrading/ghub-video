@@ -74,24 +74,6 @@ exports.getVideos = async (req, res) => {
   }
 };
 
-// GET /api/videos/hero — trả về DANH SÁCH video cho Hero Banner dạng
-// slideshow (không còn giới hạn chỉ 1 video). Admin có thể đánh dấu nhiều
-// video là Hero Spotlight; heroOrder (số nhỏ hơn hiện trước) do admin tự đặt
-// để quyết định thứ tự trình chiếu. Nếu chưa video nào được đánh dấu, fallback
-// về 1 video xem nhiều nhất (nếu có) để trang chủ không bị trống Hero Banner.
-exports.getHeroVideo = async (req, res) => {
-  try {
-    const heroVideos = await Video.find({ isHeroSpotlight: true }).sort({ heroOrder: 1, createdAt: 1 });
-    if (heroVideos.length > 0) {
-      return res.json({ success: true, data: heroVideos });
-    }
-    const fallback = await Video.findOne().sort({ views: -1 });
-    res.json({ success: true, data: fallback ? [fallback] : [] });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
 // GET /api/videos/:id — detail + one view
 exports.getVideoById = async (req, res) => {
   try {
@@ -206,12 +188,6 @@ exports.createVideo = async (req, res) => {
       ? (typeof req.body.tags === 'string' ? req.body.tags.split(',') : req.body.tags).map(t => String(t).trim()).filter(Boolean)
       : [];
 
-    // Hero Banner giờ là slideshow — cho phép NHIỀU video cùng isHeroSpotlight
-    // = true (không còn tự động hủy hero của các video khác như trước).
-    // heroOrder do admin tự nhập để quyết định thứ tự trình chiếu.
-    const makeHero = req.body.isHeroSpotlight === 'true' || req.body.isHeroSpotlight === true;
-    const heroOrder = Number.isFinite(Number(req.body.heroOrder)) ? Number(req.body.heroOrder) : 0;
-
     const newVideo = await Video.create({
       title: req.body.title.trim(),
       description: req.body.description || '',
@@ -225,8 +201,6 @@ exports.createVideo = async (req, res) => {
       category: req.body.category || 'Lập trình',
       quality: req.body.quality || '4K 60fps',
       tags: tagsArray,
-      isHeroSpotlight: makeHero,
-      heroOrder,
       channel: {
         name: req.body.channelName || req.body.channel?.name || 'Kênh Của Tôi (Pro)',
         avatar: req.body.channelAvatar || req.body.channel?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
@@ -397,7 +371,6 @@ async function processBulkLine(rawLine, index, sharedFields, hostUrl) {
     category: sharedFields.category,
     quality: sharedFields.quality,
     tags: sharedFields.tags,
-    isHeroSpotlight: false,
     channel: sharedFields.channel
   });
 }
@@ -448,14 +421,11 @@ exports.updateVideo = async (req, res) => {
       }
     }
 
-    // Hero Banner là slideshow — nhiều video có thể cùng lúc là hero, nên
-    // KHÔNG còn tự động hủy hero của các video khác khi bật hero cho 1 video.
-    if (update.isHeroSpotlight === true || update.isHeroSpotlight === 'true') {
-      update.isHeroSpotlight = true;
-    }
-    if (update.heroOrder !== undefined) {
-      update.heroOrder = Number.isFinite(Number(update.heroOrder)) ? Number(update.heroOrder) : 0;
-    }
+    // Hero Banner giờ được quản lý riêng ở mục Hero Banner trong Admin (xem
+    // heroBannerController.js) — video không còn cờ isHeroSpotlight/heroOrder
+    // riêng nữa, nên bỏ 2 field này khỏi update nếu client cũ còn gửi lên.
+    delete update.isHeroSpotlight;
+    delete update.heroOrder;
 
     const video = await Video.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true });
     if (!video) return res.status(404).json({ success: false, message: 'Không tìm thấy video' });
