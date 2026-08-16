@@ -104,17 +104,17 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // "Thử phát thử video" — dựng lại ĐÚNG cấu hình player thật (cùng thuộc
-  // tính sandbox/allow/referrerpolicy như trang xem công khai — xem
+  // tính allow/referrerpolicy như trang xem công khai — xem
   // index.html#embedVideoPlayer) để admin biết ngay 1 nguồn nhúng có phát
   // được hay không TRƯỚC khi lưu, thay vì phải lưu xong mới biết bị đen.
-  // Phải khớp CHÍNH XÁC với index.html mỗi khi đổi mức sandbox ở đó.
-  const EMBED_SANDBOX = 'allow-scripts allow-same-origin allow-forms allow-popups';
-
+  // KHÔNG còn sandbox (đã bỏ hẳn theo yêu cầu — xem ghi chú trong
+  // index.html#embedVideoPlayer) — nghĩa là khung thử phát này cũng có thể bị
+  // mở tab mới/chuyển hướng giống hệt player thật, để việc thử là trung thực.
   function buildTestPlayerHtml(resolved) {
     const isEmbedded = resolved.sourceType && ['youtube', 'vimeo', 'dailymotion', 'tiktok', 'iframe'].includes(resolved.sourceType) && resolved.embedUrl;
     if (isEmbedded) {
       const src = resolved.embedUrl.includes('?') ? `${resolved.embedUrl}&autoplay=1` : `${resolved.embedUrl}?autoplay=1`;
-      return `<iframe src="${src}" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowfullscreen frameborder="0" sandbox="${EMBED_SANDBOX}" referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+      return `<iframe src="${src}" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowfullscreen frameborder="0" referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
     }
     if (resolved.videoUrl) {
       return `<video src="${resolved.videoUrl}" controls autoplay playsinline></video>`;

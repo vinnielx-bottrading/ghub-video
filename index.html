@@ -140,32 +140,30 @@
 
             <!-- Dùng cho video nhúng từ YouTube/Vimeo/embed khác — không điều khiển
                  được bằng thanh công cụ tùy chỉnh nên player-controls sẽ bị ẩn. -->
-            <!-- sandbox: nới lỏng có kiểm soát (thử nghiệm theo yêu cầu) — thêm
-                 allow-forms + allow-popups vì 1 số player nhúng (kiểu mixdrop/
-                 streamtape/doodstream) tự crash (vd lỗi JS "__i18n is not
-                 defined") khi 1 script phụ trợ của họ (thường là quảng cáo/
-                 theo dõi) bị chặn hoàn toàn bởi sandbox quá chặt, khiến cả
-                 player chính không khởi chạy được (nhá lên rồi đen).
-                 VẪN CỐ Ý bỏ allow-top-navigation / allow-popups-to-escape-sandbox
-                 — đây là ranh giới quan trọng nhất: dù cho phép mở TAB MỚI
-                 (allow-popups), trang GHUB X ở tab hiện tại KHÔNG THỂ bị ép
-                 chuyển hướng sang trang khác. Rủi ro còn lại: người xem có thể
-                 bị mở tab quảng cáo mới khi bấm vào video nhúng — khó chịu
-                 nhưng không nguy hiểm bằng bị hijack cả trang đang xem.
-                 Lưu ý: sandbox cũng khiến Chrome chặn hẳn việc tải "plugin" (vd PDF
-                 giả dạng quảng cáo/dò ad-blocker) bên trong iframe — đây là giới hạn
-                 cứng của trình duyệt, không có token sandbox nào bật lại được, và
-                 thường KHÔNG phải nguyên nhân video không phát (nội dung đó thường chỉ
-                 là quảng cáo/tracking của nguồn nhúng, chặn được là tốt).
-                 referrerpolicy: đổi từ "no-referrer" sang "strict-origin-when-cross-origin"
-                 — nhiều nguồn nhúng miễn phí (mixdrop/streamtape/byse...) chặn hotlink
-                 bằng cách kiểm tra header Referer; nếu không gửi gì (no-referrer) họ có
-                 thể trả về trang lỗi/404 hoặc chặn hẳn nội dung thay vì phát video. Mức
-                 "strict-origin-when-cross-origin" chỉ gửi tên miền gốc (vd
-                 https://ghub-video.onrender.com), KHÔNG gửi đường dẫn trang/video cụ thể
-                 đang xem, vẫn giữ được phần lớn quyền riêng tư trong khi đáp ứng được
-                 kiểm tra referer của các nguồn nhúng này. -->
-            <iframe class="player-iframe" id="embedVideoPlayer" style="display:none;" src="" title="Video nhúng" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowfullscreen frameborder="0" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+            <!-- ĐÃ BỎ HẲN thuộc tính sandbox theo yêu cầu, sau khi đã thử 2 mức
+                 hạn chế (chặn hết popup/redirect, rồi nới thêm allow-forms +
+                 allow-popups) mà nhiều nguồn nhúng miễn phí (mixdrop/streamtape/
+                 doodstream...) vẫn tự crash/đen màn hình (lỗi JS phía họ, vd
+                 "__i18n is not defined", do 1 script phụ trợ của họ vẫn bị chặn
+                 bởi sandbox dù đã nới). Không còn sandbox nghĩa là:
+                   - Video từ các nguồn này sẽ phát được (không còn bị host tự
+                     chặn khi phát hiện bị nhúng hạn chế).
+                   - ĐÁNH ĐỔI: người xem bấm vào video có thể bị mở tab mới HOẶC
+                     bị chuyển hẳn sang trang nguồn (kiểu quảng cáo "popunder"/
+                     redirect) — đây là rủi ro đã được xác nhận chấp nhận.
+                 Muốn tránh hẳn rủi ro này cho 1 video cụ thể: đổi nguồn video đó
+                 sang host đáng tin cậy hơn (YouTube/Vimeo/Dailymotion/Streamable/
+                 Bunny Stream) thay vì các nguồn nhúng miễn phí kể trên.
+                 referrerpolicy: giữ "strict-origin-when-cross-origin" — nhiều
+                 nguồn nhúng miễn phí (mixdrop/streamtape/byse...) chặn hotlink
+                 bằng cách kiểm tra header Referer; nếu không gửi gì (no-referrer)
+                 họ có thể trả về trang lỗi/404 hoặc chặn hẳn nội dung thay vì
+                 phát video. Mức "strict-origin-when-cross-origin" chỉ gửi tên
+                 miền gốc (vd https://ghub-video.onrender.com), KHÔNG gửi đường
+                 dẫn trang/video cụ thể đang xem, vẫn giữ được phần lớn quyền
+                 riêng tư trong khi đáp ứng được kiểm tra referer của các nguồn
+                 nhúng này. -->
+            <iframe class="player-iframe" id="embedVideoPlayer" style="display:none;" src="" title="Video nhúng" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowfullscreen frameborder="0" referrerpolicy="strict-origin-when-cross-origin"></iframe>
 
             <!-- Frosted Floating Controls -->
             <div class="player-controls" id="playerControls">
