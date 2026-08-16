@@ -57,9 +57,11 @@ const VideoSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  // Không còn ảnh mặc định chung chung/giả lập — để trống nếu chưa có ảnh
+  // bìa thật (tự trích từ video, admin tự tải lên, hoặc dùng snipping tool).
   thumbnail: {
     type: String,
-    default: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=85'
+    default: ''
   },
   // Ảnh xem trước dạng GIF ngắn (~3s, không tiếng) trích từ chính video —
   // chỉ có với sourceType 'upload'/'direct' (nơi ffmpeg đọc được file thật).

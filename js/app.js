@@ -42,6 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Watch View Elements
   const watchOverlay = document.getElementById('watchOverlay');
+  const watchBrandLogo = document.getElementById('watchBrandLogo');
   const closeWatchBtn = document.getElementById('closeWatchBtn');
   const mainVideoPlayer = document.getElementById('mainVideoPlayer');
   const embedVideoPlayer = document.getElementById('embedVideoPlayer');
@@ -353,17 +354,19 @@ document.addEventListener('DOMContentLoaded', () => {
     videos.forEach(video => {
       const card = document.createElement('div');
       card.className = 'video-card';
-      const channel = video.channel || { name: 'Creator', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80', verified: false };
-      
+
+      // Video chưa có ảnh bìa thật (không còn tự tạo ảnh giả lập nữa) — hiện
+      // 1 ô trung tính có icon thay vì để trống/vỡ ảnh.
+      const thumbHtml = video.thumbnail
+        ? `<img src="${video.thumbnail}" alt="${video.title}" class="thumbnail-img" loading="lazy">`
+        : `<div class="thumbnail-img thumbnail-empty"><i class="fa-solid fa-clapperboard"></i></div>`;
+
       card.innerHTML = `
         <div class="thumbnail-wrapper">
-          <img src="${video.thumbnail}" alt="${video.title}" class="thumbnail-img" loading="lazy">
+          ${thumbHtml}
           <span class="duration-pill-bottom">${video.durationFormatted || '10:00'}</span>
         </div>
         <div class="video-info-row">
-          <div class="channel-avatar-wrapper">
-            <img src="${channel.avatar}" alt="${channel.name}" class="channel-avatar-img">
-          </div>
           <div class="video-meta-col">
             <h3 class="video-title" title="${video.title}">${video.title}</h3>
             <div class="video-stats">
@@ -380,13 +383,15 @@ document.addEventListener('DOMContentLoaded', () => {
       // tải lên/link trực tiếp), đổi ảnh thumbnail thành GIF này khi rê chuột
       // vào thẻ video — giống kiểu xem trước của YouTube.
       if (video.previewGif) {
-        const thumbImg = card.querySelector('.thumbnail-img');
-        card.addEventListener('mouseenter', () => {
-          thumbImg.src = video.previewGif;
-        });
-        card.addEventListener('mouseleave', () => {
-          thumbImg.src = video.thumbnail;
-        });
+        const thumbImg = card.querySelector('img.thumbnail-img');
+        if (thumbImg) {
+          card.addEventListener('mouseenter', () => {
+            thumbImg.src = video.previewGif;
+          });
+          card.addEventListener('mouseleave', () => {
+            thumbImg.src = video.thumbnail;
+          });
+        }
       }
 
       videoGrid.appendChild(card);
@@ -579,6 +584,16 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   closeWatchBtn.addEventListener('click', closeWatchView);
+
+  // Logo GHUB X trong trang Player: bấm vào đóng player và quay về trang chủ
+  // (dùng lại đúng closeWatchView() — trang chủ luôn nằm sẵn bên dưới lớp
+  // overlay này, không cần tải lại trang).
+  if (watchBrandLogo) {
+    watchBrandLogo.addEventListener('click', (e) => {
+      e.preventDefault();
+      closeWatchView();
+    });
+  }
 
   // Likes Interaction
   likeBtn.addEventListener('click', async () => {

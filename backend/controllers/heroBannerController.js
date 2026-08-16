@@ -41,6 +41,12 @@ exports.createHeroBanner = async (req, res) => {
       if (!video) {
         return res.status(404).json({ success: false, message: 'Không tìm thấy video đã chọn.' });
       }
+      if (!video.thumbnail) {
+        return res.status(400).json({
+          success: false,
+          message: 'Video này chưa có ảnh bìa nên không thể dùng làm Hero Banner. Hãy thêm ảnh bìa cho video đó trước (tải lên hoặc quét màn hình).'
+        });
+      }
       image = video.thumbnail;
       videoRef = video._id;
     } else if (req.body.imageUrl?.trim()) {
@@ -79,6 +85,12 @@ exports.updateHeroBanner = async (req, res) => {
     if (req.body.videoId) {
       const video = await Video.findById(req.body.videoId);
       if (!video) return res.status(404).json({ success: false, message: 'Không tìm thấy video đã chọn.' });
+      if (!update.image && !video.thumbnail) {
+        return res.status(400).json({
+          success: false,
+          message: 'Video này chưa có ảnh bìa nên không thể dùng làm Hero Banner. Hãy thêm ảnh bìa cho video đó trước.'
+        });
+      }
       update.video = video._id;
       if (!update.image) update.image = video.thumbnail;
     } else if (req.body.clearVideo === 'true' || req.body.clearVideo === true) {

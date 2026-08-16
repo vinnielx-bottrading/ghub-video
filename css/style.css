@@ -674,6 +674,17 @@ body {
   transform: scale(1.05);
 }
 
+/* Video chưa có ảnh bìa thật — ô trung tính có icon, KHÔNG phải ảnh giả lập
+   (không màu nền theo tên video, không icon play). */
+.thumbnail-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-card);
+  color: rgba(255, 255, 255, 0.18);
+  font-size: 2.2rem;
+}
+
 /* Glass Badges on Video */
 .badge-quality-top {
   position: absolute;
@@ -962,6 +973,39 @@ body {
 .speed-select option {
   background: var(--bg-surface);
   color: #ffffff;
+}
+
+.watch-brand-logo {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--text-primary);
+  font-weight: 800;
+  font-size: 1.15rem;
+  letter-spacing: -0.03em;
+  padding: 8px 14px 8px 8px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-glass);
+  transition: all 0.2s;
+}
+
+.watch-brand-logo:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: var(--border-active);
+  transform: scale(1.03);
+}
+
+.watch-brand-logo .brand-icon {
+  width: 28px;
+  height: 28px;
+  font-size: 0.85rem;
 }
 
 .close-watch-btn {

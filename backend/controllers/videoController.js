@@ -3,10 +3,8 @@ const fs = require('fs');
 const path = require('path');
 const { resolveVideoSource, detectSourceType, fetchTitleForResolved } = require('../utils/videoSource');
 const { extractThumbnailFromVideo, extractPreviewGif } = require('../utils/thumbnailExtractor');
-const { generatePlaceholderThumbnail } = require('../utils/placeholderThumbnail');
 
 const THUMBNAILS_DIR = path.join(__dirname, '..', 'uploads', 'thumbnails');
-const DEFAULT_THUMBNAIL = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=85';
 const MAX_BULK_ITEMS = 50;
 const BULK_CONCURRENCY = 4;
 
@@ -173,16 +171,10 @@ exports.createVideo = async (req, res) => {
       });
     }
 
-    // Vẫn chưa có thumbnail nào (nguồn nhúng lạ không có API công khai để
-    // suy ảnh, vd mixdrop/streamtape...) → tự tạo ảnh bìa placeholder có tên
-    // video, thay vì dùng 1 ảnh chung chung không liên quan đến nội dung.
-    if (!thumbnail) {
-      try {
-        thumbnail = generatePlaceholderThumbnail(req.body.title.trim());
-      } catch (error) {
-        thumbnail = DEFAULT_THUMBNAIL;
-      }
-    }
+    // Vẫn chưa có thumbnail nào (nguồn nhúng lạ không có API công khai để suy
+    // ảnh, vd mixdrop/streamtape...) → KHÔNG tự tạo ảnh giả lập nữa (theo yêu
+    // cầu — không cần ảnh suy ra bằng màu nền + dấu play). Để trống, admin sẽ
+    // tự tải ảnh lên hoặc dùng công cụ "quét màn hình" (snipping tool) sau.
 
     const tagsArray = req.body.tags
       ? (typeof req.body.tags === 'string' ? req.body.tags.split(',') : req.body.tags).map(t => String(t).trim()).filter(Boolean)
@@ -350,13 +342,7 @@ async function processBulkLine(rawLine, index, sharedFields, hostUrl) {
     const autoFile = await extractThumbnailFromVideo(resolved.videoUrl, THUMBNAILS_DIR);
     if (autoFile) thumbnail = `${hostUrl}/uploads/thumbnails/${autoFile}`;
   }
-  if (!thumbnail) {
-    try {
-      thumbnail = generatePlaceholderThumbnail(title);
-    } catch (error) {
-      thumbnail = DEFAULT_THUMBNAIL;
-    }
-  }
+  // Không tự tạo ảnh giả lập nữa — để trống nếu không suy ra được ảnh thật.
 
   return Video.create({
     title,
@@ -406,19 +392,12 @@ exports.updateVideo = async (req, res) => {
       }
     }
 
-    // Vẫn chưa có thumbnail (nguồn nhúng lạ không suy được ảnh) → tạo ảnh bìa
-    // placeholder từ tiêu đề, ưu tiên tiêu đề mới nếu có sửa, không thì lấy
-    // tiêu đề hiện tại trong DB.
+    // Ô Thumbnail gửi lên chuỗi rỗng nghĩa là "không đổi ảnh bìa hiện có" —
+    // giữ nguyên giá trị cũ trong DB. KHÔNG còn tự tạo ảnh giả lập thay thế
+    // nữa (theo yêu cầu) — nếu thật sự muốn video không có ảnh bìa, admin cần
+    // xoá video đó và tạo lại, hoặc tự tải/quét ảnh khác.
     if (typeof update.thumbnail === 'string' && !update.thumbnail.trim()) {
-      delete update.thumbnail; // chuỗi rỗng gửi lên nghĩa là "để trống", không phải "xoá"
-    }
-    if (!update.thumbnail) {
-      try {
-        const titleForPlaceholder = update.title?.trim() || (await Video.findById(req.params.id).select('title'))?.title;
-        if (titleForPlaceholder) update.thumbnail = generatePlaceholderThumbnail(titleForPlaceholder);
-      } catch (error) {
-        // Không lấy được tiêu đề (vd ID sai) — bỏ qua, để findByIdAndUpdate bên dưới tự báo lỗi 404.
-      }
+      delete update.thumbnail;
     }
 
     // Hero Banner giờ được quản lý riêng ở mục Hero Banner trong Admin (xem
@@ -441,10 +420,14 @@ exports.deleteVideo = async (req, res) => {
     const video = await Video.findByIdAndDelete(req.params.id);
     if (!video) return res.status(404).json({ success: false, message: 'Không tìm thấy video' });
 
-    // Delete local uploaded assets when the video belongs to this server.
-    for (const url of [video.videoUrl, video.thumbnail, video.previewGif]) {
-      if (!url || !url.includes('/uploads/')) continue;
-      const relative = url.split('/uploads/')[1];
+    // CHỈ xoá file video đã tải lên (gắn riêng 1-1 với video này, không dùng
+    // lại ở đâu khác). KHÔNG còn tự xoá luôn ảnh thumbnail/previewGif như
+    // trước — ảnh bìa có thể đang được 1 slide Hero Banner tham chiếu (mục
+    // "Chọn từ Video" copy nguyên URL ảnh lúc tạo slide), xoá theo video sẽ
+    // làm vỡ ảnh Hero Banner. Ảnh giờ được quản lý độc lập trong "Thư viện
+    // ảnh" (mediaController.js) — admin tự xoá ảnh không dùng nữa ở đó.
+    if (video.videoUrl && video.videoUrl.includes('/uploads/')) {
+      const relative = video.videoUrl.split('/uploads/')[1];
       const filePath = path.join(__dirname, '..', 'uploads', relative);
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     }

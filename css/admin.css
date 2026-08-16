@@ -415,6 +415,15 @@ body {
   border: 1px solid var(--border-glass);
 }
 
+.table-thumb-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-card);
+  color: rgba(255, 255, 255, 0.18);
+  font-size: 1.3rem;
+}
+
 .table-video-title {
   font-weight: 700;
   color: #fff;

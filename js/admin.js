@@ -235,11 +235,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const channelName = (video.channel && video.channel.name) || 'GHUB X Creator';
       const id = video._id || video.id;
 
+      const tableThumbHtml = video.thumbnail
+        ? `<img src="${video.thumbnail}" alt="${video.title}" class="table-thumb">`
+        : `<div class="table-thumb table-thumb-empty"><i class="fa-solid fa-clapperboard"></i></div>`;
+
       tr.innerHTML = `
         <td style="color: var(--text-tertiary); font-weight: 600;">#${index + 1}</td>
         <td>
           <div class="video-cell">
-            <img src="${video.thumbnail}" alt="${video.title}" class="table-thumb">
+            ${tableThumbHtml}
             <div>
               <div class="table-video-title" title="${video.title}">${video.title}</div>
               <div class="table-channel-name"><i class="fa-solid fa-user-circle"></i> ${channelName}</div>
@@ -343,7 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } else if (json.sourceType === 'direct') {
         editSourcePreviewNote.textContent = 'Sẽ tự trích khung hình làm thumbnail khi lưu (nếu ô Thumbnail để trống).';
       } else {
-        editSourcePreviewNote.textContent = 'Nguồn này không có cách lấy ảnh thật công khai — hệ thống sẽ tự tạo 1 ảnh bìa có tên video khi lưu (nếu ô Thumbnail để trống).';
+        editSourcePreviewNote.textContent = 'Nguồn này không có cách lấy ảnh thật công khai — video sẽ chưa có ảnh bìa cho tới khi bạn tự nhập/tải/quét ảnh vào ô Thumbnail bên trên.';
       }
 
       showToast('Đã nhận diện nguồn video! Nhớ bấm "Lưu Thay Đổi" để áp dụng.', 'success');
@@ -507,7 +511,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } else if (json.sourceType === 'direct') {
         sourcePreviewNote.textContent = 'Sẽ tự trích 1 khung hình làm thumbnail khi lưu video.';
       } else {
-        sourcePreviewNote.textContent = 'Nguồn này không có cách lấy ảnh thật công khai (thường gặp ở link nhúng từ mixdrop/streamtape...) — hệ thống sẽ tự tạo 1 ảnh bìa có tên video khi lưu. Bạn vẫn có thể nhập ảnh bìa riêng bên dưới nếu muốn.';
+        sourcePreviewNote.textContent = 'Nguồn này không có cách lấy ảnh thật công khai (thường gặp ở link nhúng từ mixdrop/streamtape...) — video sẽ chưa có ảnh bìa cho tới khi bạn tự nhập link ảnh, tải ảnh lên, hoặc dùng công cụ quét màn hình bên dưới.';
       }
 
       showToast('Đã nhận diện nguồn video!', 'success');
@@ -921,11 +925,16 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================================================
   const navSectionVideos = document.getElementById('navSectionVideos');
   const navSectionHeroBanner = document.getElementById('navSectionHeroBanner');
+  const navSectionMedia = document.getElementById('navSectionMedia');
   const videoManagementSection = document.getElementById('videoManagementSection');
   const heroBannerSection = document.getElementById('heroBannerSection');
+  const mediaSection = document.getElementById('mediaSection');
   const openAddBannerBtn = document.getElementById('openAddBannerBtn');
   const heroBannerCount = document.getElementById('heroBannerCount');
   const heroBannerGrid = document.getElementById('heroBannerGrid');
+  const refreshMediaBtn = document.getElementById('refreshMediaBtn');
+  const mediaCount = document.getElementById('mediaCount');
+  const mediaGrid = document.getElementById('mediaGrid');
 
   const addBannerModal = document.getElementById('addBannerModal');
   const closeAddBannerModalBtn = document.getElementById('closeAddBannerModalBtn');
@@ -949,17 +958,23 @@ document.addEventListener('DOMContentLoaded', () => {
   let selectedBannerVideoId = null;
 
   function switchAdminSection(section) {
-    const isHero = section === 'hero';
-    navSectionVideos.classList.toggle('active', !isHero);
-    navSectionHeroBanner.classList.toggle('active', isHero);
-    videoManagementSection.style.display = isHero ? 'none' : '';
-    heroBannerSection.style.display = isHero ? '' : 'none';
+    navSectionVideos.classList.toggle('active', section === 'videos');
+    navSectionHeroBanner.classList.toggle('active', section === 'hero');
+    navSectionMedia.classList.toggle('active', section === 'media');
+    videoManagementSection.style.display = section === 'videos' ? '' : 'none';
+    heroBannerSection.style.display = section === 'hero' ? '' : 'none';
+    mediaSection.style.display = section === 'media' ? '' : 'none';
   }
   navSectionVideos.addEventListener('click', (e) => { e.preventDefault(); switchAdminSection('videos'); });
   navSectionHeroBanner.addEventListener('click', (e) => {
     e.preventDefault();
     switchAdminSection('hero');
     loadHeroBanners();
+  });
+  navSectionMedia.addEventListener('click', (e) => {
+    e.preventDefault();
+    switchAdminSection('media');
+    loadMediaLibrary();
   });
 
   async function loadHeroBanners() {
@@ -1054,14 +1069,24 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Danh sách video để chọn khi ở chế độ "Chọn từ Video" — tái dùng allVideos
-  // đã tải sẵn cho bảng quản lý, không cần gọi API riêng.
+  // đã tải sẵn cho bảng quản lý, không cần gọi API riêng. Chỉ hiện video ĐÃ
+  // có ảnh bìa thật — video chưa có ảnh bìa (không còn tự tạo ảnh giả lập)
+  // sẽ không dùng được làm Hero Banner cho tới khi admin tự thêm ảnh bìa.
   function renderBannerVideoPicker() {
     const query = bannerVideoSearchInput.value.trim().toLowerCase();
-    const filtered = allVideos.filter(v => !query || v.title.toLowerCase().includes(query));
+    const withThumb = allVideos.filter(v => !!v.thumbnail);
+    const skippedCount = allVideos.length - withThumb.length;
+    const filtered = withThumb.filter(v => !query || v.title.toLowerCase().includes(query));
     bannerVideoPicker.innerHTML = '';
     if (filtered.length === 0) {
-      bannerVideoPicker.innerHTML = `<div style="padding:10px; color:var(--text-tertiary); font-size:0.84rem;">Không tìm thấy video nào.</div>`;
+      bannerVideoPicker.innerHTML = `<div style="padding:10px; color:var(--text-tertiary); font-size:0.84rem;">Không tìm thấy video nào có ảnh bìa.</div>`;
       return;
+    }
+    if (skippedCount > 0 && !query) {
+      const note = document.createElement('div');
+      note.style.cssText = 'padding:6px 10px; color:var(--text-tertiary); font-size:0.78rem;';
+      note.textContent = `Đã ẩn ${skippedCount} video chưa có ảnh bìa.`;
+      bannerVideoPicker.appendChild(note);
     }
     filtered.forEach(v => {
       const id = v._id || v.id;
@@ -1157,6 +1182,86 @@ document.addEventListener('DOMContentLoaded', () => {
       submitAddBannerBtn.innerHTML = '<i class="fa-solid fa-plus"></i> <span>Thêm Slide</span>';
     }
   });
+
+  // ==========================================================================
+  // Mục Thư viện ảnh — xem lại & dọn dẹp ảnh đã tải lên/quét màn hình. Xoá
+  // video giờ KHÔNG còn tự xoá ảnh thumbnail nữa (xem videoController.js#
+  // deleteVideo), nên ảnh không dùng nữa cần dọn thủ công ở đây.
+  // ==========================================================================
+  let mediaFiles = [];
+
+  function formatFileSize(bytes) {
+    if (!bytes && bytes !== 0) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  async function loadMediaLibrary() {
+    mediaGrid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color: var(--text-tertiary);"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải...</div>`;
+    try {
+      const res = await fetch(`${API_BASE_URL}/media`, { credentials: 'same-origin' });
+      if (redirectIfSessionExpired(res)) return;
+      const json = await res.json().catch(() => null);
+      mediaFiles = (res.ok && json?.success) ? json.data : [];
+    } catch (e) {
+      mediaFiles = [];
+    }
+    renderMediaGrid();
+  }
+
+  function renderMediaGrid() {
+    mediaCount.textContent = `${mediaFiles.length} ảnh`;
+    mediaGrid.innerHTML = '';
+
+    if (mediaFiles.length === 0) {
+      mediaGrid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color: var(--text-tertiary);">Chưa có ảnh nào được tải lên/quét màn hình.</div>`;
+      return;
+    }
+
+    mediaFiles.forEach(file => {
+      const card = document.createElement('div');
+      card.className = 'hero-banner-card';
+      const badgeText = file.inUse
+        ? `🔒 Đang dùng: ${file.usedBy.join(', ')}`
+        : 'Chưa dùng ở đâu';
+      card.innerHTML = `
+        <img src="${file.url}" class="hero-banner-card-img" alt="Ảnh trong thư viện">
+        <button class="hero-banner-card-delete" title="${file.inUse ? 'Ảnh đang được dùng, không thể xoá' : 'Xoá ảnh'}" ${file.inUse ? 'disabled style="opacity:0.35; cursor:not-allowed;"' : ''}>
+          <i class="fa-solid fa-trash"></i>
+        </button>
+        <div class="hero-banner-card-info">
+          <span class="hero-banner-card-badge" title="${badgeText}">${badgeText}</span>
+          <span style="font-size:0.72rem; color:var(--text-tertiary);">${formatFileSize(file.size)}</span>
+        </div>
+      `;
+      if (!file.inUse) {
+        card.querySelector('.hero-banner-card-delete').addEventListener('click', () => deleteMediaFileItem(file));
+      }
+      mediaGrid.appendChild(card);
+    });
+  }
+
+  async function deleteMediaFileItem(file) {
+    const isConfirm = confirm(`Xoá ảnh "${file.filename}"? Không thể hoàn tác.`);
+    if (!isConfirm) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/media/${encodeURIComponent(file.filename)}`, { method: 'DELETE', credentials: 'same-origin' });
+      if (redirectIfSessionExpired(res)) return;
+      const json = await res.json().catch(() => null);
+      if (res.ok && json?.success) {
+        mediaFiles = mediaFiles.filter(f => f.filename !== file.filename);
+        renderMediaGrid();
+        showToast('Đã xoá ảnh.');
+      } else {
+        showToast(json?.message || 'Không thể xoá ảnh này.', 'error');
+      }
+    } catch (e) {
+      showToast('Lỗi khi xoá ảnh.', 'error');
+    }
+  }
+
+  refreshMediaBtn.addEventListener('click', loadMediaLibrary);
 
   // Initialize
   loadVideos();

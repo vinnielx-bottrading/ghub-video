@@ -58,6 +58,10 @@
           <i class="fa-solid fa-images"></i>
           <span>Hero Banner</span>
         </a>
+        <a href="#" class="admin-nav-item" id="navSectionMedia">
+          <i class="fa-solid fa-photo-film"></i>
+          <span>Thư viện ảnh</span>
+        </a>
         <a href="#" class="admin-nav-item">
           <i class="fa-solid fa-chart-line"></i>
           <span>Thống kê phân tích</span>
@@ -187,6 +191,31 @@
 
         <div class="hero-banner-grid" id="heroBannerGrid">
           <!-- Dynamic slide cards injected via JS -->
+        </div>
+      </div>
+
+      <!-- Mục: Thư viện ảnh (ẩn mặc định) — xem lại & dọn dẹp ảnh đã tải
+           lên/quét màn hình trong uploads/thumbnails. Xoá video KHÔNG còn tự
+           xoá ảnh nữa (tránh làm vỡ ảnh Hero Banner đang dùng chung) — ảnh
+           thừa được dọn thủ công ở đây, có cảnh báo nếu ảnh đang được dùng. -->
+      <div id="mediaSection" style="display:none;">
+        <div class="admin-title-row">
+          <div>
+            <h1 class="admin-headline">Thư viện ảnh</h1>
+            <p class="admin-subheadline">Toàn bộ ảnh đã tải lên hoặc quét màn hình. Ảnh đang được 1 video hoặc slide Hero Banner nào dùng sẽ được đánh dấu — chỉ nên xoá ảnh chưa dùng đến.</p>
+          </div>
+        </div>
+
+        <div class="hero-banner-toolbar">
+          <button class="btn-cancel-admin" id="refreshMediaBtn">
+            <i class="fa-solid fa-arrows-rotate"></i>
+            <span>Tải lại</span>
+          </button>
+          <span class="hero-banner-count" id="mediaCount">0 ảnh</span>
+        </div>
+
+        <div class="hero-banner-grid" id="mediaGrid">
+          <!-- Dynamic media cards injected via JS -->
         </div>
       </div>
 
