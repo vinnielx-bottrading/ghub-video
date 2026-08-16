@@ -633,6 +633,53 @@ body {
   gap: 26px 20px;
 }
 
+/* Phân trang truyền thống dưới video-grid (1 2 3 ... trang cuối) */
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 40px;
+}
+
+.pagination-btn {
+  min-width: 40px;
+  height: 40px;
+  padding: 0 12px;
+  background: var(--bg-pill);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-pill);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s var(--ease-cinematic);
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.pagination-btn.active {
+  background: var(--accent-primary);
+  color: #000000;
+  border-color: var(--accent-primary);
+  cursor: default;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.pagination-ellipsis {
+  color: var(--text-tertiary);
+  padding: 0 4px;
+  user-select: none;
+}
+
 .video-card {
   display: flex;
   flex-direction: column;
@@ -1046,60 +1093,11 @@ body {
 .watch-creator-bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   padding-bottom: 20px;
   border-bottom: 1px solid var(--border-glass);
   flex-wrap: wrap;
   gap: 16px;
-}
-
-.creator-details {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.creator-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-pill);
-  object-fit: cover;
-  border: 2px solid var(--border-glass);
-}
-
-.creator-name {
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: #ffffff;
-}
-
-.creator-subs {
-  font-size: 0.82rem;
-  color: var(--text-secondary);
-}
-
-.btn-subscribe-pill {
-  background: #ffffff;
-  color: #000000;
-  border: none;
-  padding: 9px 22px;
-  border-radius: var(--radius-pill);
-  font-weight: 700;
-  font-size: 0.88rem;
-  cursor: pointer;
-  margin-left: 12px;
-  transition: all 0.2s var(--ease-cinematic);
-}
-
-.btn-subscribe-pill:hover {
-  background: #e2e8f0;
-  transform: scale(1.03);
-}
-
-.btn-subscribe-pill.subscribed {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-glass);
 }
 
 .watch-actions-pills {

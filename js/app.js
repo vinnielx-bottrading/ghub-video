@@ -16,11 +16,19 @@ document.addEventListener('DOMContentLoaded', () => {
   let videosData = [];
   let currentVideo = null;
   let activeCategory = "Tất cả";
-  let isSubscribed = false;
   let isBackendConnected = false;
+
+  // Phân trang truyền thống: mỗi lần chỉ tải & hiện 1 trang video (mặc định
+  // 24 video/trang) thay vì tải toàn bộ DB rồi lọc phía client như trước —
+  // giúp trang chủ nhẹ hơn khi số lượng video tăng lên nhiều.
+  const VIDEOS_PER_PAGE = 24;
+  let currentPage = 1;
+  let totalPages = 1;
+  let searchDebounceTimer = null;
 
   // DOM Elements
   const videoGrid = document.getElementById('videoGrid');
+  const paginationBar = document.getElementById('paginationBar');
   const categoryBar = document.getElementById('categoryBar');
   const searchInput = document.getElementById('searchInput');
   const searchBtn = document.getElementById('searchBtn');
@@ -60,10 +68,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const watchTitle = document.getElementById('watchTitle');
   const watchViewsDate = document.getElementById('watchViewsDate');
   const watchDesc = document.getElementById('watchDesc');
-  const watchChannelAvatar = document.getElementById('watchChannelAvatar');
-  const watchChannelName = document.getElementById('watchChannelName');
-  const watchChannelSubs = document.getElementById('watchChannelSubs');
-  const subscribeBtn = document.getElementById('subscribeBtn');
   const likeBtn = document.getElementById('likeBtn');
   const dislikeBtn = document.getElementById('dislikeBtn');
   const likeCountSpan = document.getElementById('likeCountSpan');
@@ -110,9 +114,20 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================================================
   // Backend API Integration (MongoDB)
   // ==========================================================================
-  async function fetchVideosFromBackend() {
+  // Tải 1 trang video theo category/search hiện tại từ backend (phân trang
+  // truyền thống — server tự cắt bằng skip()/limit(), không còn tải toàn bộ
+  // DB về rồi lọc ở client như trước). showSyncToast=true chỉ dùng cho lần
+  // tải đầu tiên lúc mở trang, tránh spam toast mỗi khi đổi trang/tìm kiếm.
+  async function fetchVideos({ page = 1, showSyncToast = false } = {}) {
     try {
-      const response = await fetch(`${API_BASE_URL}/videos`);
+      const params = new URLSearchParams();
+      if (activeCategory && activeCategory !== 'Tất cả') params.set('category', activeCategory);
+      const query = searchInput.value.trim();
+      if (query) params.set('search', query);
+      params.set('page', page);
+      params.set('limit', VIDEOS_PER_PAGE);
+
+      const response = await fetch(`${API_BASE_URL}/videos?${params.toString()}`);
       if (response.ok) {
         const json = await response.json();
         // Đánh dấu đã kết nối MongoDB ngay khi API trả về hợp lệ — kể cả khi
@@ -120,12 +135,16 @@ document.addEventListener('DOMContentLoaded', () => {
         // đó biết dùng backend thật thay vì rơi vào chế độ local mãi mãi.
         if (json.success) {
           isBackendConnected = true;
-          if (json.data && json.data.length > 0) {
-            videosData = json.data;
-            console.log("✅ Đã tải dữ liệu từ MongoDB Server thành công:", videosData.length, "video");
-            showToast(`Đã đồng bộ ${videosData.length} video trực tiếp từ MongoDB!`, 'success');
+          videosData = json.data || [];
+          currentPage = json.page || page;
+          totalPages = json.totalPages || 1;
+          renderVideos(videosData);
+          renderPagination();
+          if (videosData.length > 0) {
+            console.log("✅ Đã tải dữ liệu từ MongoDB Server thành công:", videosData.length, "video (trang", currentPage, "/", totalPages, ")");
+            if (showSyncToast) showToast(`Đã đồng bộ dữ liệu trực tiếp từ MongoDB!`, 'success');
           } else {
-            console.log("ℹ️ MongoDB đã kết nối nhưng chưa có video nào (DB trống).");
+            console.log("ℹ️ MongoDB đã kết nối nhưng không có video nào khớp (hoặc DB trống).");
           }
         }
       } else {
@@ -134,6 +153,24 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch (err) {
       console.log("ℹ️ Backend MongoDB offline, đang sử dụng dữ liệu cục bộ.");
+    }
+  }
+
+  // Danh sách thể loại lấy riêng từ GET /api/videos/categories — độc lập với
+  // trang video hiện tại, để dropdown/menu category luôn đầy đủ dù trang này
+  // chỉ đang hiện 24/nhiều trăm video.
+  async function fetchCategories() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/videos/categories`);
+      if (response.ok) {
+        const json = await response.json();
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          CATEGORIES.length = 0;
+          CATEGORIES.push(...json.data);
+        }
+      }
+    } catch (err) {
+      console.log("ℹ️ Không tải được danh sách thể loại từ backend.");
     }
   }
 
@@ -271,24 +308,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // Render Categories & Filter
   // ==========================================================================
 
-  // Đồng bộ danh sách CATEGORIES (dùng chung cho cả pill lọc phía trên lẫn
-  // menu "Thể loại" ở sidebar) theo đúng các category thật đang có trong dữ
-  // liệu video — để khi admin gõ thêm 1 thể loại mới lúc Thêm Video, nó tự
-  // xuất hiện ở đây (không cần sửa code / danh sách cứng nữa).
-  function syncCategoriesFromVideos() {
-    const dynamicCats = Array.from(new Set(videosData.map(v => v.category).filter(Boolean)))
-      .sort((a, b) => a.localeCompare(b, 'vi'));
-    const merged = ['Tất cả', ...dynamicCats];
-    CATEGORIES.length = 0;
-    CATEGORIES.push(...merged);
-  }
-
   // Điểm chọn category dùng chung cho cả pill lọc phía trên VÀ menu sidebar,
-  // để 2 nơi này luôn đồng bộ trạng thái đang chọn với nhau.
+  // để 2 nơi này luôn đồng bộ trạng thái đang chọn với nhau. Đổi category ->
+  // luôn quay về trang 1 và tải lại từ backend (server-side filter).
   function selectCategory(cat) {
     activeCategory = cat;
     renderCategories();
-    filterVideos();
+    fetchVideos({ page: 1 });
     if (window.innerWidth <= 768) sidebar.classList.remove('mobile-open');
   }
 
@@ -398,17 +424,65 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function filterVideos() {
-    const query = searchInput.value.trim().toLowerCase();
-    let filtered = videosData.filter(v => {
-      const matchCat = activeCategory === "Tất cả" || v.category === activeCategory;
-      const channelName = (v.channel && v.channel.name) ? v.channel.name.toLowerCase() : '';
-      const matchQuery = !query || v.title.toLowerCase().includes(query) || 
-                         (v.tags && v.tags.some(t => t.toLowerCase().includes(query))) ||
-                         channelName.includes(query);
-      return matchCat && matchQuery;
+  // Tìm kiếm giờ chạy trên backend (query "search" đã có sẵn ở API) thay vì
+  // lọc mảng videosData của trang hiện tại ở client — để kết quả tìm kiếm
+  // đúng trên toàn bộ DB chứ không chỉ trong 24 video đang hiện. Luôn quay
+  // về trang 1 khi từ khóa thay đổi.
+  function performSearch() {
+    fetchVideos({ page: 1 });
+  }
+
+  // ==========================================================================
+  // Phân trang truyền thống (1 2 3 ... trang cuối)
+  // ==========================================================================
+  function goToPage(page) {
+    if (page < 1 || page > totalPages || page === currentPage) return;
+    fetchVideos({ page });
+    videoGrid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function renderPagination() {
+    if (!paginationBar) return;
+    paginationBar.innerHTML = '';
+    if (totalPages <= 1) return;
+
+    const makeBtn = (label, page, opts = {}) => {
+      const btn = document.createElement('button');
+      btn.className = `pagination-btn ${opts.active ? 'active' : ''}`;
+      btn.innerHTML = label;
+      btn.disabled = !!opts.disabled;
+      if (!opts.disabled && !opts.active) {
+        btn.addEventListener('click', () => goToPage(page));
+      }
+      return btn;
+    };
+
+    paginationBar.appendChild(makeBtn('<i class="fa-solid fa-chevron-left"></i>', currentPage - 1, { disabled: currentPage <= 1 }));
+
+    // Hiện tối đa 7 số trang, có dấu "..." khi danh sách trang dài, luôn giữ
+    // trang đầu/cuối và các trang lân cận trang hiện tại để dễ điều hướng.
+    const pageNumbers = [];
+    const addPage = (p) => { if (!pageNumbers.includes(p)) pageNumbers.push(p); };
+    addPage(1);
+    addPage(totalPages);
+    for (let p = currentPage - 1; p <= currentPage + 1; p++) {
+      if (p >= 1 && p <= totalPages) addPage(p);
+    }
+    pageNumbers.sort((a, b) => a - b);
+
+    let prev = null;
+    pageNumbers.forEach(p => {
+      if (prev !== null && p - prev > 1) {
+        const dots = document.createElement('span');
+        dots.className = 'pagination-ellipsis';
+        dots.textContent = '...';
+        paginationBar.appendChild(dots);
+      }
+      paginationBar.appendChild(makeBtn(String(p), p, { active: p === currentPage }));
+      prev = p;
     });
-    renderVideos(filtered);
+
+    paginationBar.appendChild(makeBtn('<i class="fa-solid fa-chevron-right"></i>', currentPage + 1, { disabled: currentPage >= totalPages }));
   }
 
   // ==========================================================================
@@ -438,7 +512,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // sử mới đè lên mục mà trình duyệt vừa điều hướng tới.
   async function openWatchView(video, { pushUrl = true } = {}) {
     currentVideo = video;
-    isSubscribed = false;
     if (pushUrl) updateWatchUrlForVideo(video);
 
     // Tăng lượt view trên MongoDB nếu backend online
@@ -455,8 +528,6 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       video.views = (video.views || 0) + 1;
     }
-
-    const channel = video.channel || { name: 'Creator', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80', subscribers: '1.2K người theo dõi' };
 
     // Video nhúng từ YouTube/Vimeo/embed khác dùng <iframe> — không điều khiển
     // được bằng thanh công cụ tùy chỉnh (progress bar, tốc độ...) nên ẩn nó đi.
@@ -482,13 +553,8 @@ document.addEventListener('DOMContentLoaded', () => {
     watchTitle.textContent = video.title;
     watchViewsDate.textContent = `${formatNumber(video.views)} lượt xem • ${video.uploadedAt || 'Mới đây'} • Thể loại: ${video.category}`;
     watchDesc.textContent = video.description || 'Không có mô tả.';
-    watchChannelAvatar.src = channel.avatar;
-    watchChannelName.textContent = channel.name;
-    watchChannelSubs.textContent = channel.subscribers || '1K người theo dõi';
     likeCountSpan.textContent = formatNumber(video.likes || 1200);
 
-    subscribeBtn.className = 'btn-subscribe-pill';
-    subscribeBtn.textContent = 'Theo dõi';
     likeBtn.classList.remove('active');
     dislikeBtn.classList.remove('active');
 
@@ -623,20 +689,6 @@ document.addEventListener('DOMContentLoaded', () => {
     likeCountSpan.textContent = formatNumber(baseLikes);
   });
 
-  subscribeBtn.addEventListener('click', () => {
-    isSubscribed = !isSubscribed;
-    const channelName = (currentVideo.channel && currentVideo.channel.name) || 'Creator';
-    if (isSubscribed) {
-      subscribeBtn.className = 'btn-subscribe-pill subscribed';
-      subscribeBtn.textContent = 'Đã theo dõi ✓';
-      showToast(`Đã thêm kênh ${channelName} vào danh sách theo dõi`, 'success');
-    } else {
-      subscribeBtn.className = 'btn-subscribe-pill';
-      subscribeBtn.textContent = 'Theo dõi';
-      showToast(`Đã hủy theo dõi kênh ${channelName}`);
-    }
-  });
-
   shareBtn.addEventListener('click', () => {
     navigator.clipboard.writeText(window.location.href);
     showToast("Đã sao chép liên kết video vào bộ nhớ tạm!", "success");
@@ -711,10 +763,8 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast("Bình luận đã được lưu thành công!", "success");
   });
 
-  function renderRelatedVideos() {
+  function renderRelatedList(related) {
     relatedVideosList.innerHTML = '';
-    const currentId = currentVideo._id || currentVideo.id;
-    const related = videosData.filter(v => (v._id || v.id) !== currentId);
     related.forEach(v => {
       const channel = v.channel || { name: 'Creator' };
       const item = document.createElement('div');
@@ -734,9 +784,45 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Từ khi trang chủ chuyển sang phân trang, videosData chỉ còn giữ 1 trang
+  // (tối đa 24 video) nên không đủ để suy ra "video liên quan" như trước —
+  // gọi thẳng API lấy các video cùng category, loại video đang xem ra khỏi
+  // danh sách kết quả.
+  async function renderRelatedVideos() {
+    const currentId = currentVideo._id || currentVideo.id;
+    if (isBackendConnected) {
+      try {
+        const params = new URLSearchParams();
+        if (currentVideo.category) params.set('category', currentVideo.category);
+        params.set('limit', 9);
+        const res = await fetch(`${API_BASE_URL}/videos?${params.toString()}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && Array.isArray(json.data)) {
+            const related = json.data.filter(v => (v._id || v.id) !== currentId).slice(0, 8);
+            renderRelatedList(related);
+            return;
+          }
+        }
+      } catch (e) {
+        console.log("ℹ️ Không tải được video liên quan từ backend.");
+      }
+    }
+    // Dự phòng khi backend lỗi/offline: dùng tạm dữ liệu của trang hiện tại.
+    const related = videosData.filter(v => (v._id || v.id) !== currentId);
+    renderRelatedList(related);
+  }
+
   // Search & Global Events
-  searchInput.addEventListener('input', filterVideos);
-  searchBtn.addEventListener('click', filterVideos);
+  // Gõ tìm kiếm: debounce 400ms để tránh gọi API dồn dập trên từng phím gõ.
+  searchInput.addEventListener('input', () => {
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(performSearch, 400);
+  });
+  searchBtn.addEventListener('click', () => {
+    clearTimeout(searchDebounceTimer);
+    performSearch();
+  });
 
   menuToggleBtn.addEventListener('click', () => {
     if (window.innerWidth <= 768) {
@@ -755,29 +841,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Nếu URL đang mở sẵn ?v=<id> (do refresh trang xem hoặc mở link chia sẻ
   // trực tiếp), tự mở đúng video đó ngay sau khi có dữ liệu — KHÔNG đẩy thêm
-  // lịch sử mới vì URL hiện tại đã đúng rồi.
-  function openWatchViewFromUrlIfPresent() {
+  // lịch sử mới vì URL hiện tại đã đúng rồi. Từ khi có phân trang, video được
+  // chia sẻ có thể không nằm trong trang đầu đang tải sẵn -> nếu không thấy
+  // trong videosData thì gọi thẳng GET /api/videos/:id để lấy đúng video đó.
+  async function openWatchViewFromUrlIfPresent() {
     const id = new URLSearchParams(window.location.search).get('v');
     if (!id) return;
     const video = videosData.find(v => getVideoId(v) === id);
     if (video) {
       openWatchView(video, { pushUrl: false });
-    } else {
-      console.log('ℹ️ Không tìm thấy video từ liên kết (?v=' + id + ') trong dữ liệu hiện có.');
+      return;
     }
+    try {
+      const res = await fetch(`${API_BASE_URL}/videos/${id}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data) {
+          isBackendConnected = true;
+          openWatchView(json.data, { pushUrl: false });
+          return;
+        }
+      }
+    } catch (e) {
+      // rơi xuống thông báo bên dưới
+    }
+    console.log('ℹ️ Không tìm thấy video từ liên kết (?v=' + id + ') trong dữ liệu hiện có.');
   }
 
   // Init App
-  syncCategoriesFromVideos();
   renderCategories();
   renderVideos(videosData);
   initHero();
 
-  // Thử kết nối MongoDB Backend khi vừa tải trang
-  fetchVideosFromBackend().then(() => {
-    syncCategoriesFromVideos();
+  // Thử kết nối MongoDB Backend khi vừa tải trang: lấy danh sách thể loại +
+  // trang video đầu tiên song song, rồi mở video theo URL (nếu có).
+  Promise.all([
+    fetchCategories(),
+    fetchVideos({ page: 1, showSyncToast: true })
+  ]).then(() => {
     renderCategories();
-    renderVideos(videosData);
     openWatchViewFromUrlIfPresent();
   });
 

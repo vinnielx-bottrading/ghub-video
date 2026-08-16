@@ -43,10 +43,9 @@
     </div>
 
     <div class="header-right">
-      <button class="icon-glass-btn" title="Thông báo mới">
-        <i class="fa-regular fa-bell"></i>
-        <span class="badge-pulse"></span>
-      </button>
+      <!-- Đã bỏ nút chuông thông báo — không gắn chức năng gì (không có hệ
+           thống thông báo thật phía sau), giữ lại sẽ gây hiểu lầm là có tính
+           năng thông báo trong khi bấm vào không có phản ứng gì. -->
       <div id="headerAuthSlot" class="header-auth-slot">
         <!-- Injected via js/auth.js: nút "Đăng nhập" hoặc phiên người dùng hiện tại -->
       </div>
@@ -112,6 +111,12 @@
       <section class="video-grid" id="videoGrid">
         <!-- Injected via JavaScript -->
       </section>
+
+      <!-- Phân trang truyền thống (1 2 3 ... trang cuối) — thay cho cuộn vô
+           hạn, dữ liệu từng trang lấy trực tiếp từ GET /api/videos?page=&limit= -->
+      <nav class="pagination-bar" id="paginationBar" aria-label="Điều hướng trang video">
+        <!-- Injected via JavaScript -->
+      </nav>
 
     </main>
   </div>
@@ -209,15 +214,6 @@
           <h1 class="watch-title" id="watchTitle">Tiêu đề Video</h1>
           
           <div class="watch-creator-bar">
-            <div class="creator-details">
-              <img src="" alt="Avatar" class="creator-avatar" id="watchChannelAvatar">
-              <div>
-                <div class="creator-name" id="watchChannelName">Tên Kênh</div>
-                <div class="creator-subs" id="watchChannelSubs">0 người đăng ký</div>
-              </div>
-              <button class="btn-subscribe-pill" id="subscribeBtn">Theo dõi</button>
-            </div>
-
             <div class="watch-actions-pills">
               <button class="action-pill-glass" id="likeBtn">
                 <i class="fa-regular fa-thumbs-up"></i>

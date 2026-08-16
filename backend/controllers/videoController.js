@@ -44,7 +44,7 @@ exports.uploadThumbnailSnip = async (req, res) => {
 // GET /api/videos
 exports.getVideos = async (req, res) => {
   try {
-    const { category, search, sort } = req.query;
+    const { category, search, sort, limit: limitParam } = req.query;
     const query = {};
 
     if (category && category !== 'Tất cả') {
@@ -65,8 +65,34 @@ exports.getVideos = async (req, res) => {
     if (sort === 'views') sortOption = { views: -1 };
     if (sort === 'likes') sortOption = { likes: -1 };
 
-    const videos = await Video.find(query).sort(sortOption);
-    res.json({ success: true, count: videos.length, data: videos });
+    // Phân trang truyền thống: page/limit qua query string. Nếu không truyền
+    // page thì mặc định trả toàn bộ kết quả khớp query (giữ tương thích cho
+    // các nơi gọi API chỉ cần "limit" đơn giản, ví dụ danh sách video liên quan).
+    const page = parseInt(req.query.page, 10);
+    const limit = parseInt(limitParam, 10);
+    const usePagination = Number.isInteger(page) && page > 0;
+    const effectiveLimit = Number.isInteger(limit) && limit > 0 ? limit : 24;
+
+    const total = await Video.countDocuments(query);
+
+    let videosQuery = Video.find(query).sort(sortOption);
+    if (usePagination) {
+      videosQuery = videosQuery.skip((page - 1) * effectiveLimit).limit(effectiveLimit);
+    } else if (Number.isInteger(limit) && limit > 0) {
+      videosQuery = videosQuery.limit(limit);
+    }
+
+    const videos = await videosQuery;
+
+    res.json({
+      success: true,
+      count: videos.length,
+      total,
+      page: usePagination ? page : 1,
+      limit: usePagination ? effectiveLimit : (Number.isInteger(limit) && limit > 0 ? limit : total),
+      totalPages: usePagination ? Math.max(1, Math.ceil(total / effectiveLimit)) : 1,
+      data: videos
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
