@@ -31,11 +31,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const galleryLightboxPrev = document.getElementById('galleryLightboxPrev');
   const galleryLightboxNext = document.getElementById('galleryLightboxNext');
   const closeGalleryLightboxBtn = document.getElementById('closeGalleryLightboxBtn');
+  const galleryAutoplayToggleBtn = document.getElementById('galleryAutoplayToggleBtn');
+  const galleryAutoplayIntervalSelect = document.getElementById('galleryAutoplayIntervalSelect');
 
   const toastContainer = document.getElementById('toastContainer');
 
   let activePhotoSet = []; // Mảng ảnh đang mở trong lightbox (theo chủ đề HOẶC thư viện ngẫu nhiên)
   let activePhotoIndex = 0;
+  let autoplayTimer = null;
+  let autoplayActive = false;
 
   // ------------------------------------------------------------------------
   // Tiện ích
@@ -224,6 +228,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const hasMultiple = activePhotoSet.length > 1;
     galleryLightboxPrev.style.display = hasMultiple ? 'flex' : 'none';
     galleryLightboxNext.style.display = hasMultiple ? 'flex' : 'none';
+    if (galleryAutoplayToggleBtn) galleryAutoplayToggleBtn.style.display = hasMultiple ? 'flex' : 'none';
+    if (galleryAutoplayIntervalSelect) galleryAutoplayIntervalSelect.style.display = hasMultiple ? 'inline-block' : 'none';
+    if (!hasMultiple) stopAutoplay();
   }
 
   function lightboxNext() {
@@ -238,7 +245,56 @@ document.addEventListener('DOMContentLoaded', () => {
     showLightboxImage();
   }
 
+  // Bấm điều hướng thủ công trong lúc đang tự động trượt: vẫn giữ tự động
+  // trượt bật, chỉ reset lại đồng hồ đếm để không bị nhảy ảnh ngay sau đó.
+  function manualLightboxNav(direction) {
+    if (direction === 'next') lightboxNext(); else lightboxPrev();
+    if (autoplayActive) startAutoplay();
+  }
+
+  // --------------------------------------------------------------------
+  // Tự động trượt ảnh (autoplay) — tắt theo mặc định, người xem tự bật lên
+  // và chọn thời gian mỗi ảnh (3/5/8/10 giây). Tự tắt khi đóng slideshow
+  // hoặc khi chỉ còn 1 ảnh trong bộ đang xem.
+  // --------------------------------------------------------------------
+  function startAutoplay() {
+    if (autoplayTimer) clearInterval(autoplayTimer);
+    if (activePhotoSet.length <= 1) return;
+    const interval = parseInt(galleryAutoplayIntervalSelect.value, 10) || 5000;
+    autoplayTimer = setInterval(lightboxNext, interval);
+    autoplayActive = true;
+    updateAutoplayBtn();
+  }
+
+  function stopAutoplay() {
+    if (autoplayTimer) clearInterval(autoplayTimer);
+    autoplayTimer = null;
+    autoplayActive = false;
+    updateAutoplayBtn();
+  }
+
+  function updateAutoplayBtn() {
+    if (!galleryAutoplayToggleBtn) return;
+    galleryAutoplayToggleBtn.classList.toggle('active', autoplayActive);
+    galleryAutoplayToggleBtn.innerHTML = autoplayActive
+      ? '<i class="fa-solid fa-pause"></i>'
+      : '<i class="fa-solid fa-play"></i>';
+    galleryAutoplayToggleBtn.title = autoplayActive ? 'Tạm dừng tự động trượt ảnh' : 'Tự động trượt ảnh';
+  }
+
+  if (galleryAutoplayToggleBtn) {
+    galleryAutoplayToggleBtn.addEventListener('click', () => {
+      if (autoplayActive) stopAutoplay(); else startAutoplay();
+    });
+  }
+  if (galleryAutoplayIntervalSelect) {
+    galleryAutoplayIntervalSelect.addEventListener('change', () => {
+      if (autoplayActive) startAutoplay(); // Áp dụng thời gian mới ngay, không cần tắt/bật lại
+    });
+  }
+
   function closeLightbox() {
+    stopAutoplay();
     galleryLightbox.classList.remove('active');
     galleryLightboxImg.src = '';
     if (!galleryTopicOverlay.classList.contains('active')) {
@@ -247,8 +303,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (closeGalleryLightboxBtn) closeGalleryLightboxBtn.addEventListener('click', closeLightbox);
-  if (galleryLightboxNext) galleryLightboxNext.addEventListener('click', lightboxNext);
-  if (galleryLightboxPrev) galleryLightboxPrev.addEventListener('click', lightboxPrev);
+  if (galleryLightboxNext) galleryLightboxNext.addEventListener('click', () => manualLightboxNav('next'));
+  if (galleryLightboxPrev) galleryLightboxPrev.addEventListener('click', () => manualLightboxNav('prev'));
   galleryLightbox.addEventListener('click', (e) => {
     if (e.target === galleryLightbox) closeLightbox();
   });
@@ -256,8 +312,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('keydown', (e) => {
     if (galleryLightbox.classList.contains('active')) {
       if (e.key === 'Escape') closeLightbox();
-      else if (e.key === 'ArrowRight') lightboxNext();
-      else if (e.key === 'ArrowLeft') lightboxPrev();
+      else if (e.key === 'ArrowRight') manualLightboxNav('next');
+      else if (e.key === 'ArrowLeft') manualLightboxNav('prev');
     } else if (galleryTopicOverlay.classList.contains('active') && e.key === 'Escape') {
       closeTopicOverlay();
     }

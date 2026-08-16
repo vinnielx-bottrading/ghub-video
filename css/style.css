@@ -1971,6 +1971,63 @@ body {
   letter-spacing: 0.03em;
 }
 
+/* Hàng chứa số đếm ảnh + điều khiển tự động trượt (autoplay) */
+.gallery-lightbox-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.gallery-lightbox-autoplay {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gallery-autoplay-btn {
+  width: 34px;
+  height: 34px;
+  background: var(--bg-pill);
+  border: 1px solid var(--border-glass);
+  color: var(--text-primary);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  transition: all 0.2s var(--ease-cinematic);
+}
+
+.gallery-autoplay-btn:hover {
+  background: var(--bg-pill-hover);
+  border-color: var(--border-active);
+}
+
+.gallery-autoplay-btn.active {
+  background: var(--accent-gradient);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 0 14px var(--accent-glow);
+}
+
+.gallery-autoplay-interval {
+  height: 34px;
+  background: var(--bg-pill);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-pill);
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0 12px;
+  cursor: pointer;
+  outline: none;
+}
+
+.gallery-autoplay-interval:focus {
+  border-color: var(--accent-primary);
+}
+
 .gallery-lightbox-nav {
   position: absolute;
   top: 50%;

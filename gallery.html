@@ -133,7 +133,20 @@
     <div class="gallery-lightbox-stage">
       <img id="galleryLightboxImg" src="" alt="">
       <div class="gallery-lightbox-caption" id="galleryLightboxCaption"></div>
-      <div class="gallery-lightbox-counter" id="galleryLightboxCounter"></div>
+      <div class="gallery-lightbox-meta-row">
+        <div class="gallery-lightbox-counter" id="galleryLightboxCounter"></div>
+        <div class="gallery-lightbox-autoplay">
+          <button type="button" class="gallery-autoplay-btn" id="galleryAutoplayToggleBtn" title="Tự động trượt ảnh">
+            <i class="fa-solid fa-play"></i>
+          </button>
+          <select class="gallery-autoplay-interval" id="galleryAutoplayIntervalSelect" title="Thời gian mỗi ảnh">
+            <option value="3000">3 giây / ảnh</option>
+            <option value="5000" selected>5 giây / ảnh</option>
+            <option value="8000">8 giây / ảnh</option>
+            <option value="10000">10 giây / ảnh</option>
+          </select>
+        </div>
+      </div>
     </div>
     <button class="gallery-lightbox-nav gallery-lightbox-next" id="galleryLightboxNext" title="Ảnh tiếp theo">
       <i class="fa-solid fa-chevron-right"></i>

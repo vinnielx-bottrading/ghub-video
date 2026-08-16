@@ -1419,11 +1419,18 @@ document.addEventListener('DOMContentLoaded', () => {
       card.style.cursor = 'pointer';
       card.innerHTML = `
         <img src="${t.coverImage}" class="hero-banner-card-img" alt="Chủ đề ${t.topic}">
-        <div class="hero-banner-card-info">
+        <button class="hero-banner-card-delete" title="Xoá cả chủ đề &quot;${t.topic}&quot;"><i class="fa-solid fa-trash"></i></button>
+        <div class="hero-banner-card-info" title="Bấm vào ảnh để quản lý từng ảnh trong chủ đề này">
           <span class="hero-banner-card-badge" title="${t.topic}">${t.topic}</span>
-          <span style="font-size:0.72rem; color:var(--text-tertiary);">${t.count} ảnh</span>
+          <span style="font-size:0.72rem; color:var(--text-tertiary); flex-shrink:0;">${t.count} ảnh</span>
         </div>
       `;
+      // Bấm nút thùng rác: xoá ngay cả chủ đề (không cần mở modal quản lý).
+      // Bấm vào phần còn lại của thẻ: mở modal quản lý từng ảnh trong chủ đề.
+      card.querySelector('.hero-banner-card-delete').addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteGalleryTopic(t.topic);
+      });
       card.addEventListener('click', () => openGalleryManageModal(t.topic));
       galleryTopicGrid.appendChild(card);
     });
@@ -1601,18 +1608,21 @@ document.addEventListener('DOMContentLoaded', () => {
     galleryManageCurrentTopic = null;
   });
 
-  deleteGalleryTopicBtn.addEventListener('click', async () => {
-    if (!galleryManageCurrentTopic) return;
-    const isConfirm = confirm(`Xoá toàn bộ chủ đề "${galleryManageCurrentTopic}" và tất cả ảnh bên trong? Không thể hoàn tác.`);
+  // Dùng chung cho cả 2 nơi: nút thùng rác ngay trên thẻ chủ đề (xoá nhanh,
+  // không cần mở modal), và nút "Xoá cả chủ đề này" trong modal quản lý ảnh.
+  async function deleteGalleryTopic(topic) {
+    const isConfirm = confirm(`Xoá toàn bộ chủ đề "${topic}" và tất cả ảnh bên trong? Không thể hoàn tác.`);
     if (!isConfirm) return;
     try {
-      const res = await fetch(`${API_BASE_URL}/gallery/topics/${encodeURIComponent(galleryManageCurrentTopic)}`, { method: 'DELETE', credentials: 'same-origin' });
+      const res = await fetch(`${API_BASE_URL}/gallery/topics/${encodeURIComponent(topic)}`, { method: 'DELETE', credentials: 'same-origin' });
       if (redirectIfSessionExpired(res)) return;
       const json = await res.json().catch(() => null);
       if (res.ok && json?.success) {
         showToast(json.message || 'Đã xoá chủ đề.');
-        galleryManageModal.classList.remove('active');
-        galleryManageCurrentTopic = null;
+        if (galleryManageCurrentTopic === topic) {
+          galleryManageModal.classList.remove('active');
+          galleryManageCurrentTopic = null;
+        }
         await loadGalleryTopics();
       } else {
         showToast(json?.message || 'Không thể xoá chủ đề này.', 'error');
@@ -1620,6 +1630,11 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (e) {
       showToast('Lỗi khi xoá chủ đề.', 'error');
     }
+  }
+
+  deleteGalleryTopicBtn.addEventListener('click', () => {
+    if (!galleryManageCurrentTopic) return;
+    deleteGalleryTopic(galleryManageCurrentTopic);
   });
 
   // Initialize
