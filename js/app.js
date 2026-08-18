@@ -390,7 +390,6 @@ document.addEventListener('DOMContentLoaded', () => {
       card.innerHTML = `
         <div class="thumbnail-wrapper">
           ${thumbHtml}
-          <span class="duration-pill-bottom">${video.durationFormatted || '10:00'}</span>
         </div>
         <div class="video-info-row">
           <div class="video-meta-col">
@@ -580,6 +579,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (updateHistory && new URLSearchParams(window.location.search).get('v')) {
       clearWatchUrl();
     }
+    // Tải lại đúng trang lưới video hiện tại ngay khi quay về — để mọi thay
+    // đổi Admin vừa thực hiện lúc người xem đang xem video khác (thêm/sửa/
+    // xoá video, đổi ảnh bìa...) hiện ra ngay, không cần bấm F5 lại cả trang.
+    // Chạy âm thầm (không toast, không chặn UI) nên không ảnh hưởng cảm giác
+    // đóng player.
+    fetchVideos({ page: currentPage });
   }
 
   // Nút Back/Forward trình duyệt: đọc lại ?v= trong URL và mở/đóng trang xem
