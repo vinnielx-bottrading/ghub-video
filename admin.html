@@ -1,631 +1,166 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GHUB X Studio - Trung Tâm Quản Trị & Nội Dung</title>
-  
-  <!-- Plus Jakarta Sans Font -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
-  <!-- Font Awesome 6 Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  
-  <!-- Admin Stylesheet -->
-  <link rel="stylesheet" href="css/admin.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Community Chat — Admin</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;background:#f5f7fb;color:#18212f}
+button,input{font:inherit}.layout{display:flex;min-height:100vh}.side{width:245px;background:#111827;color:#fff;padding:20px 14px}.brand{font-size:18px;font-weight:800;padding:10px 12px 25px}.brand span{color:#818cf8}.nav{display:flex;gap:11px;align-items:center;padding:12px;border-radius:10px;color:#aeb7c7;cursor:pointer;margin:3px 0}.nav.active,.nav:hover{background:#202938;color:#fff}.main{flex:1;padding:28px;min-width:0}.top{display:flex;justify-content:space-between;gap:20px;align-items:center;margin-bottom:25px}.top h1{margin:0;font-size:27px}.top p{margin:5px 0 0;color:#7a8595}.status{display:flex;align-items:center;gap:8px;padding:9px 13px;border-radius:999px;background:#fff;border:1px solid #e6eaf0;font-size:13px}.led{width:9px;height:9px;border-radius:50%;background:#ef4444}.led.ok{background:#22c55e}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin-bottom:20px}.stat{background:#fff;border:1px solid #e8ebf0;border-radius:15px;padding:18px}.stat .label{font-size:12px;color:#7b8794}.stat .num{font-size:28px;font-weight:800;margin-top:8px}.card{background:#fff;border:1px solid #e8ebf0;border-radius:15px;padding:18px;margin-bottom:18px}.card h2{font-size:16px;margin:0 0 15px}.toolbar{display:flex;gap:9px;flex-wrap:wrap}.toolbar input{flex:1;min-width:220px;padding:10px 12px;border:1px solid #dfe4ea;border-radius:9px;outline:none}.btn{border:0;border-radius:9px;padding:10px 14px;background:#4f46e5;color:white;cursor:pointer}.btn.secondary{background:#eef0f4;color:#374151}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:12px;border-bottom:1px solid #edf0f3;white-space:nowrap}th{font-size:11px;color:#8a94a3;text-transform:uppercase}.room{display:flex;align-items:center;gap:10px}.roomicon{width:34px;height:34px;border-radius:9px;background:#eef2ff;display:grid;place-items:center}.empty{text-align:center;color:#8993a2;padding:30px}.log{background:#0f172a;color:#cbd5e1;border-radius:10px;padding:13px;font:12px Consolas,monospace;max-height:180px;overflow:auto;white-space:pre-wrap}.config{display:none}.config.show{display:block}@media(max-width:900px){.side{width:70px}.brand{font-size:0}.nav span{display:none}.grid{grid-template-columns:repeat(2,1fr)}.main{padding:18px}}@media(max-width:550px){.grid{grid-template-columns:1fr}.top{align-items:flex-start;flex-direction:column}}
+</style>
 </head>
 <body>
+<div class="layout">
+<aside class="side">
+  <div class="brand">✦ <span>Community</span> Chat</div>
+  <div class="nav active">▦ <span>Dashboard</span></div>
+  <div class="nav">👥 <span>Users</span></div>
+  <div class="nav">💬 <span>Rooms</span></div>
+  <div class="nav">📝 <span>Messages</span></div>
+  <div class="nav">⚙ <span>Settings</span></div>
+</aside>
 
-  <!-- Admin Header -->
-  <header class="admin-header">
-    <a href="index.html" class="admin-brand">
-      <div style="width: 34px; height: 34px; background: var(--accent-gradient); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 16px var(--accent-glow);">
-        <i class="fa-solid fa-clapperboard" style="color: #fff; font-size: 0.95rem;"></i>
-      </div>
-      <span>GHUB <span style="background: linear-gradient(135deg, #fff 40%, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">X</span></span>
-      <span class="brand-badge-admin">Studio Manager</span>
-    </a>
-
-    <div class="header-actions">
-      <a href="index.html" class="btn-view-site" title="Mở trang chủ người xem">
-        <i class="fa-solid fa-arrow-up-right-from-square"></i>
-        <span>Xem Website Trực Tiếp</span>
-      </a>
-      <button class="btn-add-primary" id="openAddModalBtn">
-        <i class="fa-solid fa-plus"></i>
-        <span>Thêm Video Mới</span>
-      </button>
-      <button class="btn-view-site" id="adminLogoutBtn" title="Đăng xuất khỏi Admin">
-        <i class="fa-solid fa-right-from-bracket"></i>
-        <span>Đăng Xuất</span>
-      </button>
-    </div>
-  </header>
-
-  <!-- Admin Layout -->
-  <div class="admin-container">
-    
-    <!-- Sidebar Navigation -->
-    <aside class="admin-sidebar">
-      <div class="admin-nav-group">
-        <a href="#" class="admin-nav-item active" id="navSectionVideos">
-          <i class="fa-solid fa-film"></i>
-          <span>Quản lý Video</span>
-        </a>
-        <a href="#" class="admin-nav-item" id="navSectionHeroBanner">
-          <i class="fa-solid fa-images"></i>
-          <span>Hero Banner</span>
-        </a>
-        <a href="#" class="admin-nav-item" id="navSectionMedia">
-          <i class="fa-solid fa-photo-film"></i>
-          <span>Thư viện ảnh</span>
-        </a>
-        <a href="#" class="admin-nav-item" id="navSectionGallery">
-          <i class="fa-solid fa-panorama"></i>
-          <span>Bộ sưu tập ảnh</span>
-        </a>
-        <a href="#" class="admin-nav-item">
-          <i class="fa-solid fa-chart-line"></i>
-          <span>Thống kê phân tích</span>
-        </a>
-        <a href="#" class="admin-nav-item">
-          <i class="fa-solid fa-comments"></i>
-          <span>Bình luận & Đánh giá</span>
-        </a>
-        <a href="#" class="admin-nav-item">
-          <i class="fa-solid fa-sliders"></i>
-          <span>Cấu hình Website</span>
-        </a>
-      </div>
-
-      <!-- Server & Database Status Card -->
-      <div class="server-status-card">
-        <div class="status-dot-pulse"></div>
-        <div class="server-text" id="serverStatusText">
-          <strong>MongoDB Atlas Live</strong> Đang kết nối...
-        </div>
-      </div>
-    </aside>
-
-    <!-- Main Content Area -->
-    <main class="admin-main">
-
-      <!-- Mục: Quản lý Video (mặc định hiện) -->
-      <div id="videoManagementSection">
-
-      <!-- Top Title -->
-      <div class="admin-title-row">
-        <div>
-          <h1 class="admin-headline">Bảng Điều Khiển Video</h1>
-          <p class="admin-subheadline">Quản lý toàn bộ nội dung, chỉnh sửa siêu dữ liệu, đặt video nổi bật trên MongoDB dễ dàng.</p>
-        </div>
-      </div>
-
-      <!-- Quick Metrics Stats Cards -->
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon-wrap">
-            <i class="fa-solid fa-video"></i>
-          </div>
-          <div class="stat-info">
-            <div class="stat-value" id="totalVideos">0</div>
-            <div class="stat-label">Tổng số Video</div>
-          </div>
-        </div>
-
-        <div class="stat-card">
-          <div class="stat-icon-wrap" style="color: #38bdf8;">
-            <i class="fa-solid fa-eye"></i>
-          </div>
-          <div class="stat-info">
-            <div class="stat-value" id="totalViews">0</div>
-            <div class="stat-label">Tổng lượt xem (Views)</div>
-          </div>
-        </div>
-
-        <div class="stat-card">
-          <div class="stat-icon-wrap" style="color: #f43f5e;">
-            <i class="fa-solid fa-heart"></i>
-          </div>
-          <div class="stat-info">
-            <div class="stat-value" id="totalLikes">0</div>
-            <div class="stat-label">Tổng lượt Thích</div>
-          </div>
-        </div>
-
-        <div class="stat-card">
-          <div class="stat-icon-wrap" style="color: #10b981;">
-            <i class="fa-solid fa-tags"></i>
-          </div>
-          <div class="stat-info">
-            <div class="stat-value" id="totalCategories">0</div>
-            <div class="stat-label">Thể loại chủ đề</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Toolbar: Search & Filters -->
-      <div class="table-toolbar">
-        <input type="text" id="searchAdminInput" class="search-admin-input" placeholder="🔍 Tìm kiếm video theo tên, kênh...">
-        <select id="categoryFilter" class="filter-select">
-          <option value="all">Tất cả thể loại</option>
-        </select>
-      </div>
-
-      <!-- Video Data Table -->
-      <div class="table-container">
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th style="width: 50px;">#</th>
-              <th>Video & Kênh</th>
-              <th>Thể loại</th>
-              <th>Lượt xem</th>
-              <th>Lượt thích</th>
-              <th style="width: 110px;">Thao tác</th>
-            </tr>
-          </thead>
-          <tbody id="videoTableBody">
-            <!-- Dynamic rows injected via JS -->
-          </tbody>
-        </table>
-      </div>
-
-      </div>
-      <!-- /videoManagementSection -->
-
-      <!-- Mục: Hero Banner (ẩn mặc định, quản lý riêng, KHÔNG gắn vào từng video) -->
-      <div id="heroBannerSection" style="display:none;">
-        <div class="admin-title-row">
-          <div>
-            <h1 class="admin-headline">Hero Banner (Slideshow Trang Chủ)</h1>
-            <p class="admin-subheadline">Tối đa 10 slide, chỉ hình ảnh — không có chữ đè lên. Mỗi slide có thể là ảnh dán link/tải lên, hoặc lấy từ 1 video có sẵn (bấm vào sẽ mở video đó).</p>
-          </div>
-        </div>
-
-        <div class="hero-banner-toolbar">
-          <button class="btn-add-primary" id="openAddBannerBtn">
-            <i class="fa-solid fa-plus"></i>
-            <span>Thêm Slide</span>
-          </button>
-          <span class="hero-banner-count" id="heroBannerCount">0 / 10 slide</span>
-        </div>
-
-        <div class="hero-banner-grid" id="heroBannerGrid">
-          <!-- Dynamic slide cards injected via JS -->
-        </div>
-      </div>
-
-      <!-- Mục: Thư viện ảnh (ẩn mặc định) — xem lại & dọn dẹp ảnh đã tải
-           lên/quét màn hình trong uploads/thumbnails. Xoá video KHÔNG còn tự
-           xoá ảnh nữa (tránh làm vỡ ảnh Hero Banner đang dùng chung) — ảnh
-           thừa được dọn thủ công ở đây, có cảnh báo nếu ảnh đang được dùng. -->
-      <div id="mediaSection" style="display:none;">
-        <div class="admin-title-row">
-          <div>
-            <h1 class="admin-headline">Thư viện ảnh</h1>
-            <p class="admin-subheadline">Toàn bộ ảnh đã tải lên hoặc quét màn hình. Ảnh đang được 1 video hoặc slide Hero Banner nào dùng sẽ được đánh dấu — chỉ nên xoá ảnh chưa dùng đến.</p>
-          </div>
-        </div>
-
-        <div class="hero-banner-toolbar">
-          <button class="btn-cancel-admin" id="refreshMediaBtn">
-            <i class="fa-solid fa-arrows-rotate"></i>
-            <span>Tải lại</span>
-          </button>
-          <span class="hero-banner-count" id="mediaCount">0 ảnh</span>
-        </div>
-
-        <div class="hero-banner-grid" id="mediaGrid">
-          <!-- Dynamic media cards injected via JS -->
-        </div>
-      </div>
-
-      <!-- Mục: Bộ sưu tập ảnh (ẩn mặc định) — quản lý các chủ đề ảnh hiển
-           thị trên trang "Bộ sưu tập ảnh" (gallery.html) của người xem. Mỗi
-           chủ đề là 1 nhóm ảnh do admin tự đặt tên khi thêm, có thể tải ảnh
-           lên hàng loạt và/hoặc dán nhiều link ảnh trong cùng 1 lần. -->
-      <div id="gallerySection" style="display:none;">
-        <div class="admin-title-row">
-          <div>
-            <h1 class="admin-headline">Bộ sưu tập ảnh</h1>
-            <p class="admin-subheadline">Quản lý các chủ đề ảnh hiển thị trên trang "Bộ sưu tập ảnh" — tải ảnh lên hàng loạt hoặc dán link, gộp theo chủ đề tự đặt tên. Chủ đề tự biến mất khi ảnh cuối cùng của nó bị xoá.</p>
-          </div>
-        </div>
-
-        <div class="hero-banner-toolbar">
-          <button class="btn-add-primary" id="openAddGalleryBtn">
-            <i class="fa-solid fa-plus"></i>
-            <span>Thêm ảnh</span>
-          </button>
-          <span class="hero-banner-count" id="galleryTopicCount">0 chủ đề</span>
-        </div>
-
-        <div class="hero-banner-grid" id="galleryTopicGrid">
-          <!-- Dynamic topic cards injected via JS -->
-        </div>
-      </div>
-
-    </main>
+<main class="main">
+  <div class="top">
+    <div><h1>Admin Dashboard</h1><p>Quản lý Community Chat</p></div>
+    <div class="status"><i class="led" id="led"></i><span id="status">Chưa kết nối</span></div>
   </div>
 
-  <!-- Modal: Chỉnh Sửa Video (Edit Video) -->
-  <div class="admin-modal-overlay" id="editModal">
-    <div class="admin-modal-card">
-      <div class="admin-modal-head">
-        <h2 class="admin-modal-title">
-          <i class="fa-solid fa-pen-to-square" style="color: var(--accent-primary);"></i>
-          <span>Chỉnh Sửa Video</span>
-        </h2>
-        <button class="admin-modal-close" id="closeEditModalBtn"><i class="fa-solid fa-xmark"></i></button>
-      </div>
+  <section class="grid">
+    <div class="stat"><div class="label">NGƯỜI ĐANG ONLINE</div><div class="num" id="online">0</div></div>
+    <div class="stat"><div class="label">PHÒNG CHAT</div><div class="num" id="rooms">0</div></div>
+    <div class="stat"><div class="label">TIN NHẮN ĐANG XEM</div><div class="num" id="messageCount">0</div></div>
+    <div class="stat"><div class="label">BACKEND</div><div class="num" id="backend">—</div></div>
+  </section>
 
-      <div class="admin-modal-body">
-        <div class="form-group-admin">
-          <label>Tiêu đề video *</label>
-          <input type="text" id="editTitleInput" class="form-input-admin" placeholder="Nhập tiêu đề video...">
-        </div>
-
-        <div class="form-grid-2col">
-          <div class="form-group-admin">
-            <label>Thể loại danh mục (gõ để tạo mới hoặc chọn gợi ý)</label>
-            <input type="text" id="editCategorySelect" class="form-input-admin" list="categoryOptionsList" placeholder="Nhập thể loại...">
-          </div>
-          <div class="form-group-admin">
-            <label>Tên Kênh sáng tạo</label>
-            <input type="text" id="editChannelNameInput" class="form-input-admin" list="channelOptionsList" placeholder="Tên kênh...">
-          </div>
-        </div>
-
-        <div class="form-group-admin">
-          <label>Đường dẫn Thumbnail (Ảnh bìa)</label>
-          <input type="text" id="editThumbnailInput" class="form-input-admin" placeholder="https://...">
-          <button type="button" class="btn-detect-source" id="editSnipThumbnailBtn" style="margin-top: 8px;">
-            <i class="fa-solid fa-crop-simple"></i> Quét màn hình lấy Thumbnail
-          </button>
-        </div>
-
-        <div class="form-group-admin">
-          <label>Nguồn Video (link .mp4/.m3u8 trực tiếp, link YouTube/Vimeo, hoặc mã nhúng &lt;iframe&gt;)</label>
-          <input type="text" id="editVideoUrlInput" class="form-input-admin" placeholder="https://... hoặc <iframe src=...>">
-          <p class="source-hint">Nếu video này được thêm bằng mã nhúng &lt;iframe&gt; từ nguồn lạ (mixdrop/streamtape/doodstream...), ô này chỉ hiện link đã tách sẵn — cứ để nguyên và Lưu bình thường sẽ KHÔNG ảnh hưởng gì. Chỉ khi muốn đổi sang 1 nguồn khác, hãy dán lại NGUYÊN KHỐI &lt;iframe src="..."&gt; (không dán link trần) để hệ thống nhận diện đúng.</p>
-          <button type="button" class="btn-detect-source" id="editDetectSourceBtn" style="margin-top: 8px;">
-            <i class="fa-solid fa-wand-magic-sparkles"></i> Nhận diện &amp; Xem trước
-          </button>
-          <div class="source-preview" id="editSourcePreview" style="display:none; margin-top: 8px;">
-            <img id="editSourcePreviewImg" src="" alt="Xem trước thumbnail">
-            <div class="source-preview-info">
-              <span class="source-preview-badge" id="editSourcePreviewBadge">—</span>
-              <span class="source-preview-note" id="editSourcePreviewNote"></span>
-            </div>
-          </div>
-          <button type="button" class="btn-detect-source" id="editSourceTestPlayBtn" style="margin-top: 8px; display:none;">
-            <i class="fa-solid fa-play"></i> Thử phát thử video ở đây (đúng như cách phát thật)
-          </button>
-          <div class="source-test-player-wrap" id="editSourceTestPlayerWrap" style="display:none;"></div>
-        </div>
-
-        <div class="form-group-admin">
-          <label>Mô tả video</label>
-          <textarea id="editDescInput" class="form-textarea-admin" placeholder="Nội dung mô tả..."></textarea>
-        </div>
-
-        <div class="form-grid-2col">
-          <div class="form-group-admin">
-            <label>Lượt xem (Views)</label>
-            <input type="number" id="editViewsInput" class="form-input-admin" min="0">
-          </div>
-          <div class="form-group-admin">
-            <label>Lượt thích (Likes)</label>
-            <input type="number" id="editLikesInput" class="form-input-admin" min="0">
-          </div>
-        </div>
-
-        <div class="form-group-admin">
-          <label>Thẻ tags (phân cách bằng dấu phẩy)</label>
-          <input type="text" id="editTagsInput" class="form-input-admin" placeholder="4k, coding, podcast...">
-        </div>
-
-        <div style="display: flex; gap: 24px; margin-top: 10px; flex-wrap: wrap; align-items: center;">
-          <label style="display: flex; align-items: center; gap: 8px; font-size: 0.88rem; cursor: pointer; color: #fff;">
-            <input type="checkbox" id="editVerifiedCheckbox" style="accent-color: var(--accent-primary); width: 16px; height: 16px;">
-            <span>Kênh có tích xanh (Verified)</span>
-          </label>
-        </div>
-      </div>
-
-      <div class="admin-modal-foot">
-        <button class="btn-cancel-admin" id="cancelEditBtn">Hủy</button>
-        <button class="btn-add-primary" id="saveEditBtn">
-          <i class="fa-solid fa-floppy-disk"></i>
-          <span>Lưu Thay Đổi</span>
-        </button>
-      </div>
+  <section class="card">
+    <h2>Kết nối Backend</h2>
+    <div class="toolbar">
+      <input id="backendUrl" placeholder="https://your-chat-backend.onrender.com">
+      <button class="btn" onclick="connect()">Kết nối</button>
+      <button class="btn secondary" onclick="loadAll()">↻ Làm mới</button>
     </div>
-  </div>
-
-  <!-- Modal: Thêm Video Mới (Add Video) -->
-  <div class="admin-modal-overlay" id="addModal">
-    <div class="admin-modal-card">
-      <div class="admin-modal-head">
-        <h2 class="admin-modal-title">
-          <i class="fa-solid fa-cloud-arrow-up" style="color: var(--accent-primary);"></i>
-          <span>Thêm Video Mới vào MongoDB</span>
-        </h2>
-        <button class="admin-modal-close" id="closeAddModalBtn"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-
-      <div class="admin-modal-body">
-        <div class="form-group-admin" id="addTitleGroup">
-          <label>Tiêu đề video *</label>
-          <input type="text" id="addTitleInput" class="form-input-admin" placeholder="Nhập tiêu đề điện ảnh hấp dẫn...">
-        </div>
-
-        <div class="form-grid-2col">
-          <div class="form-group-admin">
-            <label>Thể loại (gõ để tạo mới hoặc chọn gợi ý)</label>
-            <input type="text" id="addCategorySelect" class="form-input-admin" list="categoryOptionsList" placeholder="Nhập thể loại mới hoặc chọn...">
-          </div>
-          <div class="form-group-admin">
-            <label>Tên Kênh</label>
-            <input type="text" id="addChannelNameInput" class="form-input-admin" list="channelOptionsList" placeholder="Ví dụ: TechLead Vietnam">
-          </div>
-        </div>
-
-        <!-- Datalist dùng chung cho gợi ý Thể loại / Tên Kênh (Add & Edit) -->
-        <datalist id="categoryOptionsList"></datalist>
-        <datalist id="channelOptionsList"></datalist>
-
-        <!-- Nguồn video: Link/Nhúng, Tải file lên, hoặc Thêm hàng loạt -->
-        <div class="form-group-admin">
-          <label>Nguồn video *</label>
-          <div class="source-tabs">
-            <button type="button" class="source-tab-btn active" id="sourceTabLink" data-mode="link">
-              <i class="fa-solid fa-link"></i> Link / Nhúng
-            </button>
-            <button type="button" class="source-tab-btn" id="sourceTabUpload" data-mode="upload">
-              <i class="fa-solid fa-upload"></i> Tải file lên
-            </button>
-            <button type="button" class="source-tab-btn" id="sourceTabBulk" data-mode="bulk">
-              <i class="fa-solid fa-layer-group"></i> Thêm hàng loạt
-            </button>
-          </div>
-
-          <!-- Chế độ: dán link YouTube/Vimeo/link chia sẻ/link trực tiếp/mã nhúng iframe -->
-          <div id="sourcePanelLink" class="source-panel">
-            <textarea id="addSourceInput" class="form-textarea-admin" rows="2" placeholder="Dán link YouTube, Vimeo, link chia sẻ, link video trực tiếp (.mp4/.m3u8), hoặc mã nhúng <iframe>..."></textarea>
-            <button type="button" class="btn-detect-source" id="detectSourceBtn">
-              <i class="fa-solid fa-wand-magic-sparkles"></i> Nhận diện &amp; Xem trước
-            </button>
-            <div class="source-preview" id="sourcePreview" style="display:none;">
-              <img id="sourcePreviewImg" src="" alt="Xem trước thumbnail">
-              <div class="source-preview-info">
-                <span class="source-preview-badge" id="sourcePreviewBadge">—</span>
-                <span class="source-preview-note" id="sourcePreviewNote"></span>
-              </div>
-            </div>
-            <button type="button" class="btn-detect-source" id="sourceTestPlayBtn" style="margin-top: 8px; display:none;">
-              <i class="fa-solid fa-play"></i> Thử phát thử video ở đây (đúng như cách phát thật)
-            </button>
-            <div class="source-test-player-wrap" id="sourceTestPlayerWrap" style="display:none;"></div>
-          </div>
-
-          <!-- Chế độ: tải file video trực tiếp từ máy -->
-          <div id="sourcePanelUpload" class="source-panel" style="display:none;">
-            <label class="file-drop-label" for="addVideoFileInput">
-              <i class="fa-solid fa-film"></i>
-              <span id="addVideoFileName">Chọn file video (MP4, WebM, MOV...)</span>
-            </label>
-            <input type="file" id="addVideoFileInput" accept="video/*" style="display:none;">
-            <p class="source-hint">Nếu không nhập/chọn ảnh bìa bên dưới, hệ thống sẽ tự động trích 1 khung hình từ video làm thumbnail.</p>
-          </div>
-
-          <!-- Chế độ: Thêm hàng loạt — mỗi dòng là 1 video (link hoặc mã nhúng) -->
-          <div id="sourcePanelBulk" class="source-panel" style="display:none;">
-            <textarea id="bulkSourceInput" class="form-textarea-admin" rows="8" placeholder="Mỗi dòng là 1 video. Dán link YouTube/Vimeo/link chia sẻ/link trực tiếp hoặc mã nhúng &lt;iframe&gt; — có thể xuống dòng giữa các thuộc tính của iframe, hệ thống vẫn hiểu đúng là 1 video.&#10;&#10;Muốn tự đặt tiêu đề riêng cho từng dòng, dùng cú pháp:&#10;Tên phim | https://...&#10;&#10;Ví dụ:&#10;https://www.youtube.com/watch?v=abcdef12345&#10;Tập 2 | &lt;iframe src=&quot;https://mixdrop.co/e/xxxxx&quot;&gt;&lt;/iframe&gt;"></textarea>
-            <p class="source-hint">Thể loại / Tên kênh / Tags ở trên sẽ áp dụng chung cho tất cả video trong lô. Tiêu đề: dùng cú pháp "Tên | nguồn" cho từng dòng, hoặc để trống — hệ thống sẽ tự lấy tiêu đề thật (YouTube/Vimeo/Dailymotion/TikTok) hoặc đặt tên mặc định. Tối đa 50 video mỗi lần.</p>
-            <div class="bulk-results" id="bulkResultsBox" style="display:none;"></div>
-          </div>
-        </div>
-
-        <div class="form-group-admin" id="addThumbnailGroup">
-          <label>Đường dẫn Thumbnail (Ảnh bìa) — để trống để tự động suy ra</label>
-          <input type="text" id="addThumbnailInput" class="form-input-admin" placeholder="https://images.unsplash.com/photo-... (tùy chọn)">
-          <button type="button" class="btn-detect-source" id="addSnipThumbnailBtn" style="margin-top: 8px;">
-            <i class="fa-solid fa-crop-simple"></i> Quét màn hình lấy Thumbnail
-          </button>
-        </div>
-
-        <div class="form-group-admin" id="addDescGroup">
-          <label>Mô tả video</label>
-          <textarea id="addDescInput" class="form-textarea-admin" placeholder="Giới thiệu nội dung video..."></textarea>
-        </div>
-
-        <div class="form-group-admin">
-          <label>Thẻ tags</label>
-          <input type="text" id="addTagsInput" class="form-input-admin" placeholder="ví dụ: 4k, tech, tutorial...">
-        </div>
-      </div>
-
-      <div class="admin-modal-foot">
-        <button class="btn-cancel-admin" id="cancelAddBtn">Hủy</button>
-        <button class="btn-add-primary" id="submitAddBtn">
-          <i class="fa-solid fa-cloud-arrow-up"></i>
-          <span>Tạo Video Mới</span>
-        </button>
-      </div>
+    <div class="config" id="config" style="margin-top:12px;color:#697586;font-size:12px">
+      WebSocket: <span id="wsUrl">—</span>
     </div>
-  </div>
+  </section>
 
-  <!-- Modal: Thêm Slide Hero Banner -->
-  <div class="admin-modal-overlay" id="addBannerModal">
-    <div class="admin-modal-card">
-      <div class="admin-modal-head">
-        <h2 class="admin-modal-title">
-          <i class="fa-solid fa-images" style="color: var(--accent-primary);"></i>
-          <span>Thêm Slide Hero Banner</span>
-        </h2>
-        <button class="admin-modal-close" id="closeAddBannerModalBtn"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-
-      <div class="admin-modal-body">
-        <div class="form-group-admin">
-          <label>Nguồn ảnh banner *</label>
-          <div class="source-tabs">
-            <button type="button" class="source-tab-btn active" id="bannerTabLink" data-mode="link">
-              <i class="fa-solid fa-link"></i> Dán link ảnh
-            </button>
-            <button type="button" class="source-tab-btn" id="bannerTabUpload" data-mode="upload">
-              <i class="fa-solid fa-upload"></i> Tải ảnh lên
-            </button>
-            <button type="button" class="source-tab-btn" id="bannerTabVideo" data-mode="video">
-              <i class="fa-solid fa-film"></i> Chọn từ Video
-            </button>
-          </div>
-
-          <!-- Chế độ: dán link ảnh banner có sẵn -->
-          <div id="bannerPanelLink" class="source-panel">
-            <input type="text" id="bannerImageUrlInput" class="form-input-admin" placeholder="https://... (link ảnh banner)">
-            <p class="source-hint">Slide chỉ hiển thị ảnh, không gắn video — bấm vào sẽ không mở video nào.</p>
-          </div>
-
-          <!-- Chế độ: tải file ảnh banner từ máy -->
-          <div id="bannerPanelUpload" class="source-panel" style="display:none;">
-            <label class="file-drop-label" for="bannerImageFileInput">
-              <i class="fa-solid fa-image"></i>
-              <span id="bannerImageFileName">Chọn ảnh banner (JPG, PNG, WebP...)</span>
-            </label>
-            <input type="file" id="bannerImageFileInput" accept="image/*" style="display:none;">
-            <p class="source-hint">Slide chỉ hiển thị ảnh, không gắn video — bấm vào sẽ không mở video nào.</p>
-          </div>
-
-          <!-- Chế độ: lấy thumbnail từ 1 video có sẵn — bấm vào slide sẽ mở video đó -->
-          <div id="bannerPanelVideo" class="source-panel" style="display:none;">
-            <input type="text" id="bannerVideoSearchInput" class="form-input-admin" placeholder="🔍 Tìm video theo tên...">
-            <div class="hero-banner-video-picker" id="bannerVideoPicker">
-              <!-- Danh sách video để chọn, injected via JS -->
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="admin-modal-foot">
-        <button class="btn-cancel-admin" id="cancelAddBannerBtn">Hủy</button>
-        <button class="btn-add-primary" id="submitAddBannerBtn">
-          <i class="fa-solid fa-plus"></i>
-          <span>Thêm Slide</span>
-        </button>
-      </div>
+  <section class="card">
+    <h2>Phòng chat</h2>
+    <div class="table-wrap">
+      <table><thead><tr><th>Phòng</th><th>Slug</th><th>ID</th><th>Trạng thái</th></tr></thead>
+      <tbody id="roomTable"></tbody></table>
     </div>
-  </div>
+  </section>
 
-  <!-- Modal: Thêm ảnh vào Bộ sưu tập — có thể tải ảnh lên hàng loạt VÀ dán
-       link ảnh trong cùng 1 lần gửi (cả 2 nguồn được gộp chung vào 1 chủ đề). -->
-  <div class="admin-modal-overlay" id="addGalleryModal">
-    <div class="admin-modal-card">
-      <div class="admin-modal-head">
-        <h2 class="admin-modal-title">
-          <i class="fa-solid fa-panorama" style="color: var(--accent-primary);"></i>
-          <span>Thêm ảnh vào Bộ sưu tập</span>
-        </h2>
-        <button class="admin-modal-close" id="closeAddGalleryModalBtn"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-
-      <div class="admin-modal-body">
-        <div class="form-group-admin">
-          <label>Chủ đề *</label>
-          <input type="text" id="galleryTopicInput" class="form-input-admin" list="galleryTopicOptionsList" placeholder="Ví dụ: Du lịch, Sự kiện 2026...">
-          <datalist id="galleryTopicOptionsList"></datalist>
-          <p class="source-hint">Gõ tên chủ đề mới để tạo, hoặc chọn 1 chủ đề có sẵn để thêm ảnh vào chung nhóm đó.</p>
-        </div>
-
-        <div class="form-group-admin">
-          <label>Nguồn ảnh * (có thể dùng cả 2 cách cùng lúc)</label>
-          <div class="source-tabs">
-            <button type="button" class="source-tab-btn active" id="galleryTabUpload" data-mode="upload">
-              <i class="fa-solid fa-upload"></i> Tải ảnh lên hàng loạt
-            </button>
-            <button type="button" class="source-tab-btn" id="galleryTabLink" data-mode="link">
-              <i class="fa-solid fa-link"></i> Dán nhiều link ảnh
-            </button>
-          </div>
-
-          <!-- Chế độ: tải nhiều file ảnh cùng lúc -->
-          <div id="galleryPanelUpload" class="source-panel">
-            <label class="file-drop-label" for="galleryImageFilesInput">
-              <i class="fa-solid fa-images"></i>
-              <span id="galleryImageFilesName">Chọn nhiều ảnh (JPG, PNG, WebP...)</span>
-            </label>
-            <input type="file" id="galleryImageFilesInput" accept="image/*" multiple style="display:none;">
-          </div>
-
-          <!-- Chế độ: dán nhiều link ảnh, mỗi dòng 1 link -->
-          <div id="galleryPanelLink" class="source-panel" style="display:none;">
-            <textarea id="galleryLinksInput" class="form-textarea-admin" rows="8" placeholder="Mỗi dòng là 1 link ảnh, ví dụ:&#10;https://.../anh1.jpg&#10;https://.../anh2.jpg"></textarea>
-          </div>
-
-          <p class="source-hint">Tổng số ảnh (file tải lên + link dán) tối đa 40 mỗi lần gửi.</p>
-          <div class="bulk-results" id="galleryBulkResultsBox" style="display:none;"></div>
-        </div>
-      </div>
-
-      <div class="admin-modal-foot">
-        <button class="btn-cancel-admin" id="cancelAddGalleryBtn">Hủy</button>
-        <button class="btn-add-primary" id="submitAddGalleryBtn">
-          <i class="fa-solid fa-cloud-arrow-up"></i>
-          <span>Thêm ảnh</span>
-        </button>
-      </div>
+  <section class="card">
+    <h2>Tin nhắn gần đây</h2>
+    <div class="toolbar" style="margin-bottom:10px">
+      <select id="roomSelect" style="padding:10px;border:1px solid #dfe4ea;border-radius:9px"></select>
+      <button class="btn secondary" onclick="loadMessages()">Tải tin nhắn</button>
     </div>
-  </div>
-
-  <!-- Modal: Quản lý ảnh trong 1 chủ đề — xem & xoá từng ảnh riêng lẻ. -->
-  <div class="admin-modal-overlay" id="galleryManageModal">
-    <div class="admin-modal-card">
-      <div class="admin-modal-head">
-        <h2 class="admin-modal-title">
-          <i class="fa-solid fa-panorama" style="color: var(--accent-primary);"></i>
-          <span id="galleryManageModalTitle">Quản lý ảnh</span>
-        </h2>
-        <button class="admin-modal-close" id="closeGalleryManageModalBtn"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-
-      <div class="admin-modal-body">
-        <div class="hero-banner-grid" id="galleryManageGrid">
-          <!-- Dynamic photo cards injected via JS -->
-        </div>
-      </div>
-
-      <div class="admin-modal-foot">
-        <button class="btn-cancel-admin" id="deleteGalleryTopicBtn" style="color: var(--accent-primary); border-color: var(--accent-primary);">
-          <i class="fa-solid fa-trash"></i>
-          <span>Xoá cả chủ đề này</span>
-        </button>
-      </div>
+    <div class="table-wrap">
+      <table><thead><tr><th>Thời gian</th><th>Người gửi</th><th>Nội dung</th><th>Room</th></tr></thead>
+      <tbody id="messageTable"></tbody></table>
     </div>
-  </div>
+  </section>
 
-  <!-- Toast Notification Container -->
-  <div class="admin-toast-container" id="adminToastContainer"></div>
+  <section class="card">
+    <h2>WebSocket Log</h2>
+    <div class="log" id="log">Chưa có kết nối.</div>
+  </section>
+</main>
+</div>
 
-  <!-- Công cụ "Quét màn hình" (Snipping Tool) làm Thumbnail: bấm nút ở ô
-       Thumbnail (Add/Edit) → trình duyệt hỏi chọn màn hình/cửa sổ/tab cần
-       quét → kéo chuột chọn vùng cần chụp trên bản xem trực tiếp → thả chuột
-       ra là ảnh được cắt và lưu làm thumbnail ngay lập tức. Dùng chung 1 overlay
-       cho cả 2 modal Add/Edit (chỉ 1 trong 2 mở tại 1 thời điểm). -->
-  <div class="snip-overlay" id="snipOverlay" style="display:none;">
-    <video id="snipVideo" autoplay muted playsinline></video>
-    <canvas id="snipCanvas"></canvas>
-    <div class="snip-toolbar">
-      <span class="snip-hint"><i class="fa-solid fa-crop-simple"></i> Kéo chuột để chọn vùng cần chụp — thả chuột ra để lưu ngay làm thumbnail.</span>
-      <button type="button" class="btn-cancel-admin" id="snipCancelBtn">Hủy quét màn hình</button>
-    </div>
-  </div>
+<script>
+let API="";
+let WS=null;
+let roomList=[];
 
-  <!-- Scripts -->
-  <script src="js/data.js"></script>
-  <script src="js/admin.js"></script>
+const $=id=>document.getElementById(id);
+function log(x){
+ const el=$("log"), t=new Date().toLocaleTimeString("vi-VN");
+ el.textContent=`[${t}] ${x}\n`+el.textContent;
+}
+function normalize(v){return v.trim().replace(/\/+$/,"");}
+function setStatus(ok,text){
+ $("led").className="led"+(ok?" ok":"");
+ $("status").textContent=text;
+ $("backend").textContent=ok?"OK":"—";
+}
+async function connect(){
+ let v=normalize($("backendUrl").value);
+ if(!v){alert("Nhập URL backend Render trước.");return}
+ API=v;
+ localStorage.setItem("chat_backend_url",API);
+ $("wsUrl").textContent=API.replace(/^http/,"ws")+"/ws";
+ $("config").classList.add("show");
+ try{
+   const r=await fetch(API+"/health");
+   const data=await r.json();
+   if(!r.ok)throw new Error(data.error||"Health check failed");
+   setStatus(true,"Backend online");
+   log("REST connected: "+API);
+   openWS();
+   await loadAll();
+ }catch(e){
+   setStatus(false,"Không kết nối được");
+   log("ERROR: "+e.message);
+   alert("Không kết nối được backend. Kiểm tra URL Render và CORS.");
+ }
+}
+function openWS(){
+ if(WS)try{WS.close()}catch(e){}
+ WS=new WebSocket(API.replace(/^http/,"ws")+"/ws");
+ WS.onopen=()=>log("WebSocket connected");
+ WS.onmessage=e=>{
+   const m=JSON.parse(e.data);
+   if(m.type==="presence"){ $("online").textContent=m.count||0; log("Online: "+(m.count||0));}
+   if(m.type==="message"){log("New message: "+m.display_name+": "+m.content); loadMessages();}
+   if(m.type==="error")log("ERROR: "+m.message);
+ };
+ WS.onclose=()=>{log("WebSocket closed");};
+ WS.onerror=()=>log("WebSocket error");
+}
+async function loadAll(){
+ if(!API){return}
+ try{
+  const r=await fetch(API+"/api/rooms");
+  if(!r.ok)throw new Error("Không tải được rooms");
+  roomList=await r.json();
+  $("rooms").textContent=roomList.length;
+  renderRooms();
+  const select=$("roomSelect");select.innerHTML="";
+  roomList.forEach(x=>{let o=document.createElement("option");o.value=x.id;o.textContent=x.icon+" "+x.name;select.appendChild(o)});
+  if(roomList.length)await loadMessages();
+ }catch(e){log("ERROR: "+e.message)}
+}
+function renderRooms(){
+ $("roomTable").innerHTML=roomList.map(r=>`<tr>
+ <td><div class="room"><div class="roomicon">${esc(r.icon||"💬")}</div><b>${esc(r.name)}</b></div></td>
+ <td>${esc(r.slug)}</td><td>${esc(r.id)}</td><td><span style="color:#22a06b">● Active</span></td>
+ </tr>`).join("")||`<tr><td colspan="4" class="empty">Chưa có phòng</td></tr>`;
+}
+async function loadMessages(){
+ const id=$("roomSelect").value;if(!id||!API)return;
+ try{
+  const r=await fetch(API+"/api/rooms/"+id+"/messages?limit=100");
+  const data=await r.json();
+  if(!r.ok)throw new Error(data.error||"Không tải được");
+  $("messageCount").textContent=data.length;
+  $("messageTable").innerHTML=data.map(m=>`<tr>
+   <td>${new Date(m.created_at).toLocaleString("vi-VN")}</td>
+   <td><b>${esc(m.display_name||"Guest")}</b></td>
+   <td style="max-width:450px;white-space:normal">${esc(m.content)}</td>
+   <td>${esc(m.room_id)}</td>
+  </tr>`).join("")||`<tr><td colspan="4" class="empty">Chưa có tin nhắn</td></tr>`;
+ }catch(e){log("ERROR: "+e.message)}
+}
+function esc(v){
+ return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+}
+$("backendUrl").value=localStorage.getItem("chat_backend_url")||"";
+if($("backendUrl").value) connect();
+</script>
 </body>
 </html>
